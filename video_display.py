@@ -4,16 +4,32 @@ import random
 import os.path as osp
 
 NUM_PROMPTS = 15
-VIDEO_ROOT = "video/3sec"
-# VIDEO_ROOT = "/home/yusu/new_home/code/y/video-vote/video/3sec"
+abs_path = "/home/yusu/new_home/code/y/video-vote/video/3sec"
+VIDEO_ROOT = abs_path if osp.exists(abs_path) else "video/3sec"
+DEBUG_MODE = True if osp.exists(abs_path) else False
 MODEL_LIST = ["attn", 'mamba2', 'm1', 'm2']
 CRITERIA = {
-    0: ["Text alignment", "how well a generated video aligns with the provided prompt."],
-    1: ["Frame Consistency", "how well the generated video maintains the same scene across frames. Violations of frame consistency can manifest as morphing-like artifacts, blurred or distorted objects, or content that abruptly appears or disappears."],
-    2: ["Motion Naturalness", "how model is capable of generating natural and realistic motion."],
-    3: ["Aesthetics", "measures which of the generated videos has more interesting and compelling content, lighting, color, and camera effects"],
-    4: ["Scene consistency", "measures how consistent characters are across different parts of the video. Violations can manifest as characters wearing apparel in one scene, but not in the next."],
-    5: ["Amusement / Emotion", "The metric assesses “cartoon specific” emotions"]
+    0: ["Text alignment",
+        "Measures how closely the generated video aligns with the provided prompt, ensuring accurate representation of key elements and actions described.",
+        "The content of the video does not accurately reflect the details specified in the prompt e.g. If the prompt specifies that Tom should be in the kitchen, but the video depicts him in a living room, this would represent a violation."],
+    1: ["Frame Stability",
+        " Assesses the stability and coherence of frames throughout the video, contributing to a smooth viewing experience.",
+        "Morphing artifacts, blurred or distorted objects, or abrupt appearances or disappearances of content"],
+    2: ["Motion Naturalness",
+        "Reflects the fluidity and realism of motion in the generated video. It indicates the model’s understanding of real-world physics while ensuring characters and objects move naturally within the scene.",
+        "Unnatural motion can occur if characters move in jerky or unrealistic ways that don't reflect typical physical behavior. e.g. If Tom runs with an exaggerated, unrealistic motion that defies gravity, this would indicate poor motion naturalness."
+        ],
+    3: ["Aesthetics",
+        "Evaluates the visual appeal of the generated videos, considering factors such as composition, lighting, color schemes, and camera effects. Strong aesthetics contribute to more engaging and captivating content.",
+        "Colors clash, lighting is inconsistent, or the overall composition is unappealing"],
+    4: ["Contextual Coherence",
+        "Measures the uniformity of characters across different segments of the video, ensuring continuity in their appearance and actions.",
+        "Inconsistencies occur when characters display different clothing or features in various scenes without explanation. e.g. If Jerry is shown wearing a red scarf in one scene and appears without it in the next without any narrative justification, this would represent a violation."
+        ],
+    5: ["Emotion Conveyance",
+        "Assesses how effectively the model conveys the emotions of each character, which is essential for a cartoon like Tom and Jerry",
+        "Characters’ expressions do not align with the actions they are portraying. e,g. If the prompt states that Jerry should look 'frightened,' but his facial expression appears neutral or confused, this would indicate a violation."
+        ]
 }
 
 def get_rankings(sorted_videos):
@@ -27,7 +43,8 @@ def show_videos(vc_id):
     st.subheader(f'{st.session_state.current_index+1}/300')
     st.progress(st.session_state.current_index / 300)
     st.caption(f"Prompt id: #{video_id}")
-    st.write(st.session_state.scores)
+    if DEBUG_MODE:
+        st.write(st.session_state.scores)
     st.divider()
 
     marks = ["A", "B", "C", "D"]
@@ -44,11 +61,15 @@ def show_videos(vc_id):
     cols = st.columns(2)
     for i, video in enumerate(video_list.values()):
         with cols[i%2]:
-            st.caption(f"Video {marks[i]} ({video[0]})")
-            st.video(video[1], autoplay=True, loop=True)
+            if DEBUG_MODE:
+                st.caption(f"Video {marks[i]} ({video[0]})")
+            else:
+                st.caption(f"Video {marks[i]}")
+            st.video(video[1], autoplay=(i==0))
     
-    st.subheader(f"[{criteria_id}] {CRITERIA[criteria_id][0]}:")
-    st.caption(f" {CRITERIA[criteria_id][1]}")
+    st.markdown(f"#### [{criteria_id}] {CRITERIA[criteria_id][0]}:")
+    st.markdown(f"##### {CRITERIA[criteria_id][1]}")
+    st.markdown(CRITERIA[criteria_id][2])
 
     if 'previous_sorted_items' not in st.session_state:
         st.session_state.previous_sorted_items = marks
@@ -63,7 +84,8 @@ def show_videos(vc_id):
         st.markdown(r"<div style='text-align: left;'>👎 →</div>", unsafe_allow_html=True)
 
     rankings = get_rankings([video_list[a][0] for a in sorted_items])
-    st.write(" - ".join([video_list[a][0] for a in sorted_items]))
+    if DEBUG_MODE:
+        st.write(" > ".join([video_list[a][0] for a in sorted_items]))
 
     ret=list(rankings.values())
     if st.session_state.previous_sorted_items == sorted_items:
