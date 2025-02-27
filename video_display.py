@@ -4,7 +4,7 @@ import random
 import os.path as osp
 
 NUM_PROMPTS = 15
-VIDEO_ROOT = "/home/yusu/new_home/code/y/streamlit-app/videos/3sec"
+VIDEO_ROOT = "/home/yusu/new_home/code/y/video-vote/video/3sec"
 MODEL_LIST = ["attn", 'mamba2', 'm1', 'm2']
 CRITERIA = {
     0: ["Text alignment", "how well a generated video aligns with the provided prompt."],
@@ -26,7 +26,7 @@ def show_videos(vc_id):
     st.subheader(f'{st.session_state.current_index+1}/300')
     st.progress(st.session_state.current_index / 300)
     st.caption(f"Prompt id: #{video_id}")
-    st.write(st.session_state.scores)
+    # st.write(st.session_state.scores)
     st.divider()
 
     marks = ["A", "B", "C", "D"]
@@ -43,7 +43,7 @@ def show_videos(vc_id):
     cols = st.columns(2)
     for i, video in enumerate(video_list.values()):
         with cols[i%2]:
-            st.caption(f"Video {marks[i]} {video[0]}")
+            st.caption(f"Video {marks[i]} ({video[0]})")
             st.video(video[1], autoplay=True, loop=True)
     
     st.subheader(f"[{criteria_id}] {CRITERIA[criteria_id][0]}:")
@@ -62,7 +62,7 @@ def show_videos(vc_id):
         st.markdown(r"<div style='text-align: left;'>👎 →</div>", unsafe_allow_html=True)
 
     rankings = get_rankings([video_list[a][0] for a in sorted_items])
-    # st.write(rankings)
+    st.write(" - ".join([video_list[a][0] for a in sorted_items]))
 
     ret=list(rankings.values())
     if st.session_state.previous_sorted_items == sorted_items:

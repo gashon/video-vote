@@ -4,9 +4,9 @@ import json
 import streamlit as st
 from video_display import MODEL_LIST
 
-SAVE_PATH = "data"
+SAVE_PATH = "eval"
 def create_db():
-    conn = sqlite3.connect('data/evaluations.db')
+    conn = sqlite3.connect(osp.join(SAVE_PATH, 'evaluations.db'))
     c = conn.cursor()
     c.execute('DROP TABLE IF EXISTS evaluations')
     c.execute('''CREATE TABLE evaluations
@@ -22,7 +22,7 @@ def save_response(prompt_id, criteria_id, rating):
     with open(osp.join(SAVE_PATH, f"{st.session_state.batch_id}.json"), 'w') as f:
         json.dump(st.session_state.scores, f)
 
-    conn = sqlite3.connect('data/evaluations.db')
+    conn = sqlite3.connect(osp.join(SAVE_PATH, 'evaluations.db'))
     c = conn.cursor()
     rating_json = json.dumps(rating)  # Convert the rating list to a JSON string
     c.execute("INSERT INTO evaluations (prompt_id, criteria_id, rating) VALUES (?, ?, ?)", (prompt_id, criteria_id, rating_json))
@@ -31,7 +31,7 @@ def save_response(prompt_id, criteria_id, rating):
     conn.close()
 
 def fetch_evaluations():
-    conn = sqlite3.connect('data/evaluations.db')
+    conn = sqlite3.connect(osp.join(SAVE_PATH, 'evaluations.db'))
     c = conn.cursor()
     c.execute("SELECT * FROM evaluations")
     rows = c.fetchall()

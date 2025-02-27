@@ -39,4 +39,3 @@ if __name__ == "__main__":
                 if st.button("Submit", disabled=(0 in rankings)):
                     save_response(prompt_id, criterion_id, rankings)
                     st.success("All evaluations in this batch are completed!")
-        
