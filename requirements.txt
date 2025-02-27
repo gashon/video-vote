@@ -1,1 +1,2 @@
-streamlit
+streamlit==1.42.1
+streamlit-sortables==0.1.3

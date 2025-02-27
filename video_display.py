@@ -4,7 +4,8 @@ import random
 import os.path as osp
 
 NUM_PROMPTS = 15
-VIDEO_ROOT = "/home/yusu/new_home/code/y/video-vote/video/3sec"
+VIDEO_ROOT = "video/3sec"
+# VIDEO_ROOT = "/home/yusu/new_home/code/y/video-vote/video/3sec"
 MODEL_LIST = ["attn", 'mamba2', 'm1', 'm2']
 CRITERIA = {
     0: ["Text alignment", "how well a generated video aligns with the provided prompt."],
@@ -26,7 +27,7 @@ def show_videos(vc_id):
     st.subheader(f'{st.session_state.current_index+1}/300')
     st.progress(st.session_state.current_index / 300)
     st.caption(f"Prompt id: #{video_id}")
-    # st.write(st.session_state.scores)
+    st.write(st.session_state.scores)
     st.divider()
 
     marks = ["A", "B", "C", "D"]
