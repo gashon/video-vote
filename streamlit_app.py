@@ -1,4 +1,4 @@
-import json
+import time
 
 import streamlit as st
 from streamlit_cookies_manager import CookieManager
@@ -54,6 +54,7 @@ if __name__ == "__main__":
 
     else:
         batch_id = int(cookies["batch_id"])
+        user_id = int(cookies["user_id"])
         current_index = int(cookies["current_index"])
 
         st.session_state.scores = {
@@ -67,10 +68,20 @@ if __name__ == "__main__":
         st.session_state.current_index = current_index
         rankings = show_videos((prompt_id, criterion_id))
         button_placeholder = st.empty()
+        start_time = time.time()
 
         with button_placeholder:
-            if st.button("Next", disabled=(rankings is None)):
-                save_response(prompt_id, criterion_id, rankings, batch_id)
+            if st.button("Next", disabled=(0 in rankings)):
+                review_duration = int(time.time() - start_time)
+
+                save_response(
+                    prompt_id,
+                    criterion_id,
+                    rankings,
+                    batch_id,
+                    user_id,
+                    review_duration,
+                )
                 cookies["current_index"] = current_index + 1
                 st.rerun()  # cookie will be saved on rerun
 
@@ -80,4 +91,3 @@ if __name__ == "__main__":
                     cookies["final_page"] = True
                     st.success("All evaluations in this batch are completed!")
                     st.rerun()
-

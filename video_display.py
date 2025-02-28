@@ -49,10 +49,23 @@ def show_videos(vc_id):
     st.markdown(f"{prompt}")
     st.divider()
 
-    st.markdown("#### Generated Videos:")
+    # Initialize counters in session state
+    if "clicked_video_count" not in st.session_state:
+        st.session_state.clicked_video_count = 0
+    if "clicked_video_ids" not in st.session_state:
+        st.session_state.clicked_video_ids = set()
+
     marks = ["A", "B", "C", "D"]
+    st.markdown("#### Generated Videos:")
+
     if 'video_id' not in st.session_state or st.session_state.video_id != video_id:
+        if video_id not in st.session_state.clicked_video_ids:
+            st.session_state.clicked_video_ids.add(video_id)
+
+        st.session_state.clicked_video_count += 1
+        
         video_list = [(model, osp.join(VIDEO_ROOT, model+"_newtest", "step-8000", f"{video_id:03d}-00.mp4")) for model in MODEL_LIST]
+
         random.shuffle(video_list)
         video_list = {mark: video for mark, video in zip(marks, video_list)}
         st.session_state.video_list = video_list
