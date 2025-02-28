@@ -12,7 +12,6 @@ NUM_PROMPTS_PER_GROUP = NUM_PROMPTS//NUM_GROUPS # 50
 def create_batches(return_reverse=False):
     batches = {k:[] for k in range(NUM_BATCHES)}
     batches_reverse = np.ones((NUM_CRITERIA, NUM_PROMPTS), dtype=int)*(-1)
-    print(batches_reverse.shape)
     for group in range(NUM_GROUPS):
         for criteria_idx in range(NUM_CRITERIA):
             batch_idx = criteria_idx + group*NUM_CRITERIA
@@ -36,6 +35,6 @@ def create_batches(return_reverse=False):
 
 if __name__=="__main__":
     batches, batches_reverse = create_batches(return_reverse=True)
-    
+
     print('First group of evaluators (row - criteria, column - prompt, entries - batch id):')
     print(batches_reverse[:, :NUM_PROMPTS_PER_GROUP])
