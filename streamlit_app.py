@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     cookies = get_cookie_manager()
 
-    if "batch_id" not in cookies:
+    if "batch_id" not in cookies or 'current_index' not in cookies:
         cookies["batch_id"] = "None"  # cookies must be string
         cookies.save()
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         start_time = time.time()
 
         with button_placeholder:
-            if st.button("Next", disabled=(0 in rankings)):
+            if st.button("Next", disabled=(rankings is None)):
                 review_duration = int(time.time() - start_time)
 
                 save_response(
