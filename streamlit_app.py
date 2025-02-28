@@ -3,9 +3,9 @@ import time
 import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
-from response_handler import create_db, save_response
-from video_display import MODEL_LIST, show_videos
-from batch_manager import create_batches
+from response_handler import create_db, save_response, count_valid_user_responses
+from video_display import DEBUG_MODE, MODEL_LIST, show_videos, start_page
+from batch_manager import create_batches, NUM_PROMPTS_PER_GROUP
 
 
 def get_cookie_manager():
@@ -24,25 +24,27 @@ if __name__ == "__main__":
 
     cookies = get_cookie_manager()
     batches = create_batches()
-
     if "batch_id" not in cookies or 'current_index' not in cookies:
         cookies["batch_id"] = "None"  # cookies must be string
         cookies.save()
 
     if cookies["batch_id"] == "None":
-        st.title("TTT Video-evaluation")
 
         try:
             user_id = int(st.query_params["user_id"])
         except KeyError:
-            st.error(
-                "Assigned URL error: this is an invalid url. Please use the assigned URL or contact ujinsong@stanford.edu"
-            )
-            st.stop()
+            if DEBUG_MODE: user_id = 2
+            else:
+                st.error(
+                    "Assigned URL error: this is an invalid url. Please use the assigned URL or contact ujinsong@stanford.edu"
+                )
+                st.stop()
+
+        ready = start_page(user_id)
 
         batch_id = user_id % 10
 
-        if st.button("Start"):
+        if st.button("Start", disabled=not ready):
             # cookies must be strings
             cookies["batch_id"] = str(batch_id)
             cookies["user_id"] = str(user_id)
@@ -51,9 +53,11 @@ if __name__ == "__main__":
             st.rerun()
 
     elif "final_page" in cookies:
-        st.write("You are done")
-        ## TODO
-
+        count = count_valid_user_responses(int(cookies["user_id"]))
+        if count == NUM_PROMPTS_PER_GROUP:
+            st.success("You have completed all evaluations! Thanks for your participation!")
+        else:
+            st.warning(f"You have evaluated {count} prompts. Please complete all evaluations.")
     else:
         batch_id = int(cookies["batch_id"])
         user_id = int(cookies["user_id"])
