@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_sortables import sort_items
 import random
 import os.path as osp
+from batch_manager import NUM_PROMPTS_PER_GROUP
 
 VIDEO_ROOT = "video/3sec"
 DEBUG_MODE = True if osp.exists("/home/yusu/new_home/code/y/video-vote") else False
@@ -38,8 +39,8 @@ def get_rankings(sorted_videos):
 
 def show_videos(vc_id):
     video_id, criteria_id = vc_id
-    st.subheader(f'{st.session_state.current_index+1}/300')
-    st.progress(st.session_state.current_index / 300)
+    st.subheader(f'{st.session_state.current_index+1}/{NUM_PROMPTS_PER_GROUP}')
+    st.progress(st.session_state.current_index / NUM_PROMPTS_PER_GROUP)
     st.caption(f"Prompt id: {video_id:03d} - Criteria id: {criteria_id}")
 
     with open(osp.join(VIDEO_ROOT, MODEL_LIST[0]+"_newtest", "step-8000", f"{video_id:03d}.txt")) as f:
