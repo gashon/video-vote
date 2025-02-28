@@ -4,7 +4,8 @@ import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
 from response_handler import create_db, save_response
-from video_display import MODEL_LIST, fetch_batches, show_videos
+from video_display import MODEL_LIST, show_videos
+from batch_manager import create_batches
 
 
 def get_cookie_manager():
@@ -22,6 +23,7 @@ if __name__ == "__main__":
     create_db()
 
     cookies = get_cookie_manager()
+    batches = create_batches()
 
     if "batch_id" not in cookies or 'current_index' not in cookies:
         cookies["batch_id"] = "None"  # cookies must be string
@@ -62,7 +64,7 @@ if __name__ == "__main__":
         }
         st.session_state.scores["evaluated_prompts"] = []
 
-        vc_ids = fetch_batches(batch_id)
+        vc_ids = batches[batch_id]
     
         prompt_id, criterion_id = vc_ids[current_index]
         st.session_state.current_index = current_index

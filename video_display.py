@@ -3,7 +3,6 @@ from streamlit_sortables import sort_items
 import random
 import os.path as osp
 
-NUM_PROMPTS = 15
 VIDEO_ROOT = "video/3sec"
 DEBUG_MODE = True if osp.exists("/home/yusu/new_home/code/y/video-vote") else False
 MODEL_LIST = ["attn", 'mamba2', 'm1', 'm2']
@@ -85,7 +84,7 @@ def show_videos(vc_id):
     
     st.markdown(f"#### Criteria - `{CRITERIA[criteria_id][0]}`:")
     st.markdown(f"{CRITERIA[criteria_id][1]}")
-    st.caption(CRITERIA[criteria_id][2])
+    st.caption(f"*Violation could be: {CRITERIA[criteria_id][2]}")
         
     rankings = {}
     cols = st.columns(4)
@@ -105,28 +104,7 @@ def show_videos(vc_id):
     else:
         sorted_marks = sorted(rankings, key=lambda x: rankings[x])
         rankings = get_rankings([video_list[a][0] for a in sorted_marks])
-        st.markdown(f"You sorted: {' ➡️ '.join(sorted_marks)}")
+        st.markdown(f"You ranked: {' ➡️ '.join(sorted_marks)} (Best -> Worst)")
         if DEBUG_MODE:
             st.write(" > ".join([video_list[a][0] for a in sorted_marks]))
         return list(rankings.values())
-
-def fetch_batches(version):
-    batches = {k:[] for k in range(10)}
-    for criteria in range(3):
-        batch_index = criteria
-        for video_index in range(NUM_PROMPTS):
-            batch_index = (batch_index) % 5
-            batches[batch_index].append((video_index, criteria))
-            batch_index += 1
-    
-    for criteria in range(3):
-        batch_index = criteria
-        for video_index in range(NUM_PROMPTS):
-            batch_index = (batch_index) % 5
-            batches[batch_index+5].append((video_index, criteria+3))
-            batch_index += 1
-
-    for batch_idx, batch in batches.items():
-        batches[batch_idx] = sorted(batch)
-
-    return batches.get(version, [])
