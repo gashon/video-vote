@@ -58,9 +58,20 @@ def show_videos(vc_id, current_index):
         st.write(st.session_state.scores)
     st.divider()
 
+    # Initialize counters in session state
+    if "clicked_video_count" not in st.session_state:
+        st.session_state.clicked_video_count = 0
+    if "clicked_video_ids" not in st.session_state:
+        st.session_state.clicked_video_ids = set()
+
     marks = ["A", "B", "C", "D"]
 
     if "video_id" not in st.session_state or st.session_state.video_id != video_id:
+        if video_id not in st.session_state.clicked_video_ids:
+            st.session_state.clicked_video_ids.add(video_id)
+
+        st.session_state.clicked_video_count += 1
+
         video_list = [
             (
                 model,
@@ -148,4 +159,3 @@ def fetch_batches(version):
         batches[batch_idx] = sorted(batch)
 
     return batches.get(version, [])
-
