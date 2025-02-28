@@ -62,13 +62,14 @@ if __name__ == "__main__":
         st.session_state.scores["evaluated_prompts"] = []
 
         vc_ids = fetch_batches(batch_id)
-
+    
         prompt_id, criterion_id = vc_ids[current_index]
-        rankings = show_videos((prompt_id, criterion_id), current_index)
+        st.session_state.current_index = current_index
+        rankings = show_videos((prompt_id, criterion_id))
         button_placeholder = st.empty()
 
         with button_placeholder:
-            if st.button("Next", disabled=(0 in rankings)):
+            if st.button("Next", disabled=(rankings is None)):
                 save_response(prompt_id, criterion_id, rankings, batch_id)
                 cookies["current_index"] = current_index + 1
                 st.rerun()  # cookie will be saved on rerun
