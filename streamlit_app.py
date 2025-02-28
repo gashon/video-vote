@@ -75,8 +75,8 @@ if __name__ == "__main__":
                 st.rerun()  # cookie will be saved on rerun
 
             if current_index >= len(vc_ids) - 1:
-                if st.button("Submit", disabled=(0 in rankings)):
-                    save_response(prompt_id, criterion_id, rankings)
+                if st.button("Submit", disabled=(rankings is None)):
+                    save_response(prompt_id, criterion_id, rankings, batch_id)
                     cookies["final_page"] = True
                     st.success("All evaluations in this batch are completed!")
                     st.rerun()

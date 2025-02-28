@@ -77,8 +77,8 @@ def show_videos(vc_id):
     rankings = {}
     cols = st.columns(4)
     for i, mark in enumerate(marks):
-        with cols[i]:
-            rankings[mark] = st.pills(f"Video {mark}", options=[1, 2, 3, 4], default=None, key=f"rank_{mark}")
+        with cols[i]:                
+            rankings[mark] = st.pills(f"Video {mark}", options=[1, 2, 3, 4], key=f"vid-{video_id}-{mark}")
     
     st.divider()
     if None in rankings.values():
