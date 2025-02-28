@@ -4,9 +4,8 @@ import random
 import os.path as osp
 
 NUM_PROMPTS = 15
-abs_path = "/home/yusu/new_home/code/y/video-vote/video/3sec"
-VIDEO_ROOT = abs_path if osp.exists(abs_path) else "video/3sec"
-DEBUG_MODE = True if osp.exists(abs_path) else False
+VIDEO_ROOT = "video/3sec"
+DEBUG_MODE = True if osp.exists("/home/yusu/new_home/code/y/video-vote") else False
 MODEL_LIST = ["attn", 'mamba2', 'm1', 'm2']
 CRITERIA = {
     0: ["Text alignment",
