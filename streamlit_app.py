@@ -24,9 +24,17 @@ if __name__ == "__main__":
 
     cookies = get_cookie_manager()
     batches = create_batches()
+    if DEBUG_MODE:
+        if st.button("Reset"):
+            cookies["batch_id"] = "None"
+            cookies["final_page"] = False
+            cookies.save()
+            st.rerun()
+
     if "batch_id" not in cookies or 'current_index' not in cookies:
         cookies["batch_id"] = "None"  # cookies must be string
         cookies.save()
+    
 
     if cookies["batch_id"] == "None":
 
@@ -52,8 +60,8 @@ if __name__ == "__main__":
             cookies.save()
             st.rerun()
 
-    elif "final_page" in cookies:
-        count = count_valid_user_responses(int(cookies["user_id"]))
+    elif cookies.get("final_page", False):
+        count, missing_index = count_valid_user_responses(int(cookies["user_id"]))
         if count == NUM_PROMPTS_PER_GROUP:
             st.success("You have completed all evaluations! Thanks for your participation!")
         else:
@@ -86,12 +94,19 @@ if __name__ == "__main__":
                     rankings,
                     batch_id,
                     user_id,
+                    current_index,
                     review_duration,
                 )
-                cookies["current_index"] = current_index + 1
+
+                saved_responses = count_valid_user_responses(user_id)
+                if saved_responses >= current_index + 1:
+                    cookies["current_index"] = current_index + 1
+                print(f'current_index: {current_index}, number of saved responses: {saved_responses}')
+                    
                 st.rerun()  # cookie will be saved on rerun
 
             if current_index >= len(vc_ids) - 1:
+                print(current_index, len(vc_ids))
                 if st.button("Submit", disabled=(rankings is None)):
                     review_duration = int(time.time() - start_time)
                     save_response(
@@ -100,6 +115,7 @@ if __name__ == "__main__":
                         rankings,
                         batch_id,
                         user_id,
+                        current_index,
                         review_duration,
                     )
                     cookies["final_page"] = True

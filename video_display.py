@@ -105,14 +105,14 @@ def show_videos(vc_id):
                 st.caption(f"Video {marks[i]}")
             st.video(video[1], autoplay=(i==0))
     
-    st.markdown(f"#### Criteria - `{CRITERIA[criteria_id][0]}`:")
-    st.markdown(f"{CRITERIA[criteria_id][1]}")
-    st.caption(f"*Violation could be: {CRITERIA[criteria_id][2]}")
-        
-    rankings = {}
-    cols = st.columns(4)
-    for i, mark in enumerate(marks):
-        with cols[i]:                
+    cols = st.columns([0.7, 0.3])
+    with cols[0]:
+        st.markdown(f"#### Criteria - `{CRITERIA[criteria_id][0]}`:")
+        st.markdown(f"{CRITERIA[criteria_id][1]}")
+        st.caption(f"*Violation could be: {CRITERIA[criteria_id][2]}")
+    with cols[1]:
+        rankings = {}
+        for i, mark in enumerate(marks):
             rankings[mark] = st.pills(f"Video {mark}'s rank", options=[1, 2, 3, 4], key=f"vid-{video_id}-{mark}")
     
     if None in rankings.values():
