@@ -29,8 +29,7 @@ def save_response(prompt_id, criteria_id, rating, batch_id, user_id, review_dura
         prompt_id,
         criteria_id,
         rating_json,
-        review_duration,
-        f"to {osp.join(SAVE_PATH, "evaluations.db")}"
+        review_duration
     )
     c.execute(
         "INSERT INTO evaluations (user_id, batch_id, prompt_id, criteria_id, rating, review_duration, clicked_video_count, clicked_video_unrepeated_count, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",

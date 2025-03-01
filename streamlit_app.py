@@ -97,3 +97,4 @@ if __name__ == "__main__":
                     cookies["final_page"] = True
                     st.success("All evaluations in this batch are completed!")
                     st.rerun()
+    st.caption(f"If you have any questions, please contact ujinsong@stanford.edu")

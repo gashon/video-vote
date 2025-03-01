@@ -63,9 +63,7 @@ def show_videos(vc_id):
     video_id, criteria_id = vc_id
     st.subheader(f'{st.session_state.current_index+1}/{NUM_PROMPTS_PER_GROUP}')
     st.progress(st.session_state.current_index / NUM_PROMPTS_PER_GROUP)
-    cols = st.columns(2)
-    with cols[0]: st.caption(f"Prompt id: {video_id:03d} - Criteria id: {criteria_id}")
-    with cols[1]: st.caption(f"If you have any questions, please contact ujinsong@stanford.edu")
+    st.caption(f"Prompt id: {video_id:03d} - Criteria id: {criteria_id}")
     
     with open(osp.join(VIDEO_ROOT, MODEL_LIST[0]+"_newtest", "step-8000", f"{video_id:03d}.txt")) as f:
         prompt = f.read()
