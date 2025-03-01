@@ -93,7 +93,15 @@ if __name__ == "__main__":
 
             if current_index >= len(vc_ids) - 1:
                 if st.button("Submit", disabled=(rankings is None)):
-                    save_response(prompt_id, criterion_id, rankings, batch_id)
+                    review_duration = int(time.time() - start_time)
+                    save_response(
+                        prompt_id,
+                        criterion_id,
+                        rankings,
+                        batch_id,
+                        user_id,
+                        review_duration,
+                    )
                     cookies["final_page"] = True
                     st.success("All evaluations in this batch are completed!")
                     st.rerun()

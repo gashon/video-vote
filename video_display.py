@@ -65,7 +65,7 @@ def show_videos(vc_id):
     st.progress(st.session_state.current_index / NUM_PROMPTS_PER_GROUP)
     st.caption(f"Prompt id: {video_id:03d} - Criteria id: {criteria_id}")
     
-    with open(osp.join(VIDEO_ROOT, MODEL_LIST[0]+"_newtest", "step-8000", f"{video_id:03d}.txt")) as f:
+    with open(osp.join(VIDEO_ROOT, MODEL_LIST[0]+"_newtest", "step-8000", f"{video_id%15:03d}.txt")) as f:
         prompt = f.read()
     st.markdown("#### Prompt:")
     st.markdown(f"{prompt}")
@@ -86,7 +86,7 @@ def show_videos(vc_id):
 
         st.session_state.clicked_video_count += 1
         
-        video_list = [(model, osp.join(VIDEO_ROOT, model+"_newtest", "step-8000", f"{video_id:03d}-00.mp4")) for model in MODEL_LIST]
+        video_list = [(model, osp.join(VIDEO_ROOT, model+"_newtest", "step-8000", f"{video_id%15:03d}-00.mp4")) for model in MODEL_LIST]
 
         random.shuffle(video_list)
         video_list = {mark: video for mark, video in zip(marks, video_list)}
