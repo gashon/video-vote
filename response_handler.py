@@ -88,8 +88,10 @@ def count_valid_user_responses(user_id):
                 evaluated_indices.add(current_index)
                 unique_pairs.add((prompt_id, criteria_id))
     conn.close()
-
-    print(f"User {user_id} has evaluated {evaluated_indices} indices in batch {batch_id}")
+    if len(evaluated_indices) > 0:
+        print(f"User {user_id} has evaluated {evaluated_indices} indices in batch {batch_id}")
+    else:
+        print(f"User {user_id} has not evaluated any indices yet")
     return evaluated_indices
 
 if __name__ == "__main__":

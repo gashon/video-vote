@@ -35,19 +35,18 @@ if __name__ == "__main__":
         cookies["batch_id"] = "None"  # cookies must be string
         cookies.save()
     
-
+    try:
+        user_id = int(st.query_params["user_id"])
+    except KeyError:
+        if DEBUG_MODE:
+            user_id = 67
+        else:
+            st.error(
+                "Assigned URL error: this is an invalid url. Please use the assigned URL or contact ujinsong@stanford.edu"
+            )
+            st.stop()
+    
     if cookies["batch_id"] == "None":
-        try:
-            user_id = int(st.query_params["user_id"])
-        except KeyError:
-            if DEBUG_MODE:
-                user_id = 20
-                cookies["user_id"] = str(user_id)
-            else:
-                st.error(
-                    "Assigned URL error: this is an invalid url. Please use the assigned URL or contact ujinsong@stanford.edu"
-                )
-                st.stop()
 
         ready = start_page(user_id)
 
@@ -81,6 +80,7 @@ if __name__ == "__main__":
         user_id = int(cookies["user_id"])
         current_index = int(cookies["current_index"])
 
+        st.caption(f"User-{user_id:03d} (Batch-{batch_id:03d} - Index-{current_index:03d})")
         st.session_state.scores = {
             criterion: {model: 0 for model in MODEL_LIST} for criterion in range(6)
         }
@@ -109,7 +109,10 @@ if __name__ == "__main__":
 
                 saved_responses = count_valid_user_responses(user_id)
                 missing_responses = set(range(NUM_PROMPTS_PER_GROUP))-(saved_responses)
-                if len(missing_responses) == 0:
+                if len(saved_responses)==0:
+                    cookies["batch_id"] = "None"
+                    st.rerun()
+                elif len(missing_responses) == 0:
                     cookies["final_page"] = True
                 elif current_index in saved_responses:
                     cookies["current_index"] = min(missing_responses)
