@@ -3,6 +3,7 @@ import os.path as osp
 import sqlite3
 import time
 import streamlit as st
+from batch_manager import NUM_BATCHES
 
 SAVE_PATH = "eval"
 
@@ -65,7 +66,6 @@ def count_valid_user_responses(user_id):
     c.execute("SELECT DISTINCT user_id, batch_id, current_index, prompt_id, criteria_id, rating FROM evaluations WHERE user_id = ?", (user_id,))
     rows = c.fetchall()
     unique_pairs = set()
-    count = 0
     evaluated_indices = set()
     for row in rows:
         user_id, batch_id, current_index, prompt_id, criteria_id, rating = row
@@ -82,15 +82,15 @@ def count_valid_user_responses(user_id):
                 isinstance(criteria_id, int) and
                 isinstance(rating_list, list) and
                 len(rating_list) == 4 and
-                set(rating_list) == {1, 2, 3, 4}
+                set(rating_list) == {1, 2, 3, 4} and
+                batch_id == user_id%NUM_BATCHES
             ):
-                count += 1
                 evaluated_indices.add(current_index)
                 unique_pairs.add((prompt_id, criteria_id))
-                
     conn.close()
-    print(f"User {user_id} has evaluated {count} prompts.")
-    return count
+
+    print(f"User {user_id} has evaluated {evaluated_indices} indices in batch {batch_id}")
+    return evaluated_indices
 
 if __name__ == "__main__":
     create_db()
