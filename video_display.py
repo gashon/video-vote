@@ -9,26 +9,22 @@ VIDEO_ROOT = "video/3sec"
 DEBUG_MODE = True if osp.exists("/home/yusu/new_home/code/y/video-vote") else False
 MODEL_LIST = ["attn", 'mamba2', 'm1', 'm2']
 CRITERIA = {
-    0: ["Text alignment",
-        "Measures how closely the generated video aligns with the provided prompt, ensuring accurate representation of key elements and actions described.",
-        "The content of the video not accurately reflecting the details specified in the prompt e.g. If the prompt specifies that Tom should be in the kitchen, but the video depicts him in a living room, this would represent a violation."],
-    1: ["Frame Stability",
-        "Assesses the stability and coherence of frames within a video. It focuses on the presence of visual artifacts that can disrupt the smoothness and continuity of the viewing experience.",
-        "Morphing artifacts, blurred or distorted objects, or abrupt appearances or disappearances of content"],
-    2: ["Motion Naturalness",
-        "Reflects the fluidity and realism of motion in the generated video. It indicates the model’s understanding of real-world physics while ensuring characters and objects move naturally within the scene.",
-        "Characters moving in jerky or unrealistic ways that don't reflect typical physical behavior. e.g. If Tom runs with an exaggerated, unrealistic motion that defies gravity, this would indicate poor motion naturalness."
-        ],
+    0: ["Text Following",
+        "How close does the video follow the text prompt, including the key elements and actions?",
+        "If the prompt says Tom should be in the kitchen but the video shows him somewhere else, like the living room, this means the video doesn't follow the text."],
+    1: ["Motion Smoothness",
+        "Does the motion of characters look smooth and consistent throughout the video? It checks that movements are clear, fluid, and don't have strange jumps or visual glitches.",
+        "If Jerry suddenly appears somewhere else, moves in jerky steps, or his shape distorts randomly, this shows poor motion smoothness."],
     3: ["Aesthetics",
-        "Evaluates the visual appeal of the generated videos, considering factors such as composition, lighting, color schemes, and camera effects. Strong aesthetics contribute to more engaging and captivating content.",
-        "Colors clash, lighting is inconsistent, or the overall composition is unappealing"],
-    4: ["Contextual Coherence",
-        "Measures the uniformity of characters and settings across video segments to ensure continuity in appearance and actions, verifying that characters and objects maintain consistent attributes during scene changes, even with time gaps.",
-        "Inconsistencies occur when characters display different clothing or features in various scenes without explanation. e.g. If Jerry is shown wearing a red scarf in one scene and appears without it in the next without any narrative justification, this would represent a violation."
+        "How pleasing does the video look? It checks the quality of colors, lighting, camera angles, and how everything fits together visually.",
+        "If the colors clash, lighting changes abruptly, or scenes look messy and unattractive, the video has poor visual appeal."],
+    4: ["Scene Consistency",
+        "Do characters and settings stay the same across scenes? It checks if people, objects, and locations remain consistent, even if there's a gap between scenes.",
+        "If Jerry has a red scarf in one scene but suddenly doesn't have it in the next scene without explanation, the video has poor scene consistency."
         ],
-    5: ["Emotion Conveyance",
-        "Assesses how effectively the model conveys the appropriate emotions of each character through facial expressions and postures that align with the actions and situations the scene is trying to portray.",
-        "Characters' expressions not aligning with the actions they are portraying is a violation. For example, if the prompt describes a situation where Jerry should look frightened but his facial expression appears neutral or confused, this would indicate a violation."
+    5: ["Character Emotions",
+        "Does the video clearly show the emotions of characters through their facial expressions and body language? It checks if characters display feelings that match the described actions or situations.",
+        "If Jerry is supposed to look scared but instead seems calm or happy, that's a violation."
         ]
 }
 
@@ -41,24 +37,28 @@ def get_rankings(sorted_videos):
 def start_page(user_id):
     st.title("TTT Video-evaluation")
     st.markdown(f"#### Welcome, user-{user_id:03d}!")
-    st.markdown("Thank you for taking on the qualitative evaluation task. Your feedback is crucial for evaluating the quality of the generated videos. Please follow the instructions below to complete the evaluation.")
+    st.markdown("Please follow the instructions below to complete the evaluation.")
     
     st.markdown(f"""
-                You will make **{NUM_PROMPTS_PER_GROUP} comparison** evaluations by watching four {VIDEO_LENGTH}-second videos generated from the same input prompts, and then rank them based on the criterion assigned to you. You will compare the four videos based on that specific criterion and will not evaluate them again on other criteria.
-                
-                The estimated time for this task is 2 to 3 hours. One criterion will be randomly selected from the following six options:""")
+                1. You will make **{NUM_PROMPTS_PER_GROUP} comparisons** by watching 4x {VIDEO_LENGTH}-second videos generated from the same text prompt.
+                2. You will rank them based on the specific criterion assigned for the comparison.
+
+                The estimated time for this task is 2 to 3 hours. Criterion will be randomly selected from the following five options:""")
     container = st.container(border=True)
     for i, criterion in CRITERIA.items():
         container.write(f"▸ **{criterion[0]}**: {criterion[1]}")
-    container.caption("The description of the criterion will be displayed again when you need to make a judgment, so there's no need to worry about memorizing it!")
+        if criterion[2]:
+            container.caption(f"Example: {criterion[2]}")
+    container.write("*The description of the criterion will be displayed again, no need to worry about memorizing it.*")
+    st.markdown("### Instructions")
     st.markdown("""
-                1. First, read the prompt that generated the videos.
+                1. If displayed, read the prompt that generated the videos.
 
-                2. Fully watch all four videos considering the given criteria. *Please note that our monitoring system will flag your submission if you do not watch the entire duration of all four videos.*
+                2. Watch all four videos considering the given criteria. *Our monitoring system will flag your submission if you do not watch the entire duration of all four videos.*
 
-                3. Rank them based on the provided criterion; **focus strictly on this criterion** WITHOUT taking into account any of the other five or any overall preferences. Note that you should click **1 for the best video and 4 for the worst video**, since you are relatively ranking them rather than scoring them.
+                3. Rank them based on the provided criterion; **focus strictly on this criterion** WITHOUT taking into account any other criteria or personal preferences. **1 for the best video and 4 for the worst video**
 
-                4. Feel free to watch the videos as many times as you need to make the best choice. However, please be aware that you will NOT be able to return to the previous question after pressing the **[ Next ]** button, which serves as the submission for that set of videos.
+                4. Feel free to watch the videos as many times as you need to make the best choice. However, you will NOT be able to return to the previous question after pressing the **[ Next ]** button.
 
                 """)
     st.markdown("Please confirm the following:")
@@ -112,7 +112,7 @@ def show_videos(vc_id):
                 st.caption(f"Video {marks[i]}")
             st.video(video[1], autoplay=(i==0))
     
-    if CRITERIA[criteria_id][0] in ["Text alignment", "Emotion Conveyance"]:
+    if CRITERIA[criteria_id][0] in ["Text Following", "Character Emotions"]:
         with open(osp.join(VIDEO_ROOT, MODEL_LIST[0]+"_newtest", "step-8000", f"{video_id%15:03d}.txt")) as f:
             prompt = f.read()
         st.markdown("#### Prompt:")
@@ -123,14 +123,14 @@ def show_videos(vc_id):
     with cols[0]:
         st.markdown(f"#### Criteria - `{CRITERIA[criteria_id][0]}`:")
         st.markdown(f"{CRITERIA[criteria_id][1]}")
-        st.caption(f"*Violation could be: {CRITERIA[criteria_id][2]}")
+        st.caption(f"*Example violatione: {CRITERIA[criteria_id][2]}")
     with cols[1]:
         rankings = {}
         for i, mark in enumerate(marks):
             rankings[mark] = st.pills(f"Video {mark}'s rank", options=[1, 2, 3, 4], key=f"vid-{video_id}-{mark}")
     
     if None in rankings.values():
-        st.warning(f"‼️ Assign ranks to the videos by selecting a **rank** for **each one** that aligns with the criteria explained above. Please note that a *higher rank* corresponds to a *smaller number* .")
+        st.warning(f"‼️ 1 is the best video and 4 is the worst video, as judged by the criterion.")
         return None
 
     elif set(rankings.values()) != {1, 2, 3, 4}:
