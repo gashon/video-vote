@@ -15,14 +15,14 @@ CRITERIA = {
     1: ["Motion Smoothness",
         "Does the motion of characters look smooth and consistent throughout the video? It checks that movements are clear, fluid, and don't have strange jumps or visual glitches.",
         "If Jerry suddenly appears somewhere else, moves in jerky steps, or his shape distorts randomly, this shows poor motion smoothness."],
-    3: ["Aesthetics",
+    2: ["Aesthetics",
         "How pleasing does the video look? It checks the quality of colors, lighting, camera angles, and how everything fits together visually.",
         "If the colors clash, lighting changes abruptly, or scenes look messy and unattractive, the video has poor visual appeal."],
-    4: ["Scene Consistency",
+    3: ["Scene Consistency",
         "Do characters and settings stay the same across scenes? It checks if people, objects, and locations remain consistent, even if there's a gap between scenes.",
         "If Jerry has a red scarf in one scene but suddenly doesn't have it in the next scene without explanation, the video has poor scene consistency."
         ],
-    5: ["Character Emotions",
+    4: ["Character Emotions",
         "Does the video clearly show the emotions of characters through their facial expressions and body language? It checks if characters display feelings that match the described actions or situations.",
         "If Jerry is supposed to look scared but instead seems calm or happy, that's a violation."
         ]
