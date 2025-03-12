@@ -1,11 +1,11 @@
 import numpy as np
 
 NUM_PROMPTS = 500
-NUM_CRITERIA = 6
+NUM_CRITERIA = 5
 TOTAL_EVALUATIONS = NUM_PROMPTS*NUM_CRITERIA
 
-NUM_EVALUATORS = 300
-NUM_BATCHES = NUM_EVALUATORS//5 # 60
+NUM_EVALUATORS = 250
+NUM_BATCHES = NUM_EVALUATORS//5 # 50
 NUM_GROUPS = NUM_BATCHES//NUM_CRITERIA # 10
 NUM_PROMPTS_PER_GROUP = NUM_PROMPTS//NUM_GROUPS # 50
 
@@ -38,3 +38,4 @@ if __name__=="__main__":
 
     print('First group of evaluators (row - criteria, column - prompt, entries - batch id):')
     print(batches_reverse[:, :NUM_PROMPTS_PER_GROUP])
+    print(batches_reverse[:, NUM_PROMPTS_PER_GROUP:2*NUM_PROMPTS_PER_GROUP])
