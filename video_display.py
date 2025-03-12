@@ -77,20 +77,15 @@ def show_videos(vc_id):
     st.progress(st.session_state.current_index / NUM_PROMPTS_PER_GROUP)
     st.caption(f"Prompt id: {video_id:03d} - Criteria id: {criteria_id}")
     
-    with open(osp.join(VIDEO_ROOT, MODEL_LIST[0]+"_newtest", "step-8000", f"{video_id%15:03d}.txt")) as f:
-        prompt = f.read()
-    st.markdown("#### Prompt:")
-    st.markdown(f"{prompt}")
-    st.divider()
-
     # Initialize counters in session state
     if "clicked_video_count" not in st.session_state:
         st.session_state.clicked_video_count = 0
     if "clicked_video_ids" not in st.session_state:
         st.session_state.clicked_video_ids = set()
-
+    
+    st.divider()
     marks = ["A", "B", "C", "D"]
-    st.markdown("#### Generated Videos:")
+    st.markdown("#### Videos:")
 
     if 'video_id' not in st.session_state or st.session_state.video_id != video_id:
         if video_id not in st.session_state.clicked_video_ids:
@@ -117,6 +112,13 @@ def show_videos(vc_id):
                 st.caption(f"Video {marks[i]}")
             st.video(video[1], autoplay=(i==0))
     
+    if CRITERIA[criteria_id][0] in ["Text alignment", "Emotion Conveyance"]:
+        with open(osp.join(VIDEO_ROOT, MODEL_LIST[0]+"_newtest", "step-8000", f"{video_id%15:03d}.txt")) as f:
+            prompt = f.read()
+        st.markdown("#### Prompt:")
+        st.markdown(f"{prompt}")
+    st.divider()
+
     cols = st.columns([0.7, 0.3])
     with cols[0]:
         st.markdown(f"#### Criteria - `{CRITERIA[criteria_id][0]}`:")
