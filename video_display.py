@@ -19,7 +19,7 @@ CRITERIA = {
         "How pleasing does the video look? It checks the quality of colors, lighting, camera angles, and how everything fits together visually.",
         "If the colors clash, lighting changes abruptly, or scenes look messy and unattractive, the video has poor visual appeal."],
     3: ["Scene Consistency",
-        "Do characters and settings stay the same across scenes? It checks if people, objects, and locations remain consistent, even if there's a gap between scenes.",
+        "Do characters and settings stay the same across scenes? It checks if characters, objects, and locations remain consistent, even if there's a gap between scenes.",
         "If Jerry has a red scarf in one scene but suddenly doesn't have it in the next scene without explanation, the video has poor scene consistency."
         ],
     4: ["Character Emotions",
@@ -40,23 +40,40 @@ def start_page(user_id):
     st.markdown("Please follow the instructions below to complete the evaluation.")
     
     st.markdown(f"""
-                1. You will make **{NUM_PROMPTS_PER_GROUP} comparisons** by watching 4x {VIDEO_LENGTH}-second videos generated from the same text prompt.
-                2. You will rank them based on the specific criterion assigned for the comparison.
+                * You will make **{NUM_PROMPTS_PER_GROUP} comparisons** by watching `4`x {VIDEO_LENGTH}-second videos generated from the same text prompt.
+                * You will rank them based on the specific criterion assigned for the comparison.
 
                 The estimated time for this task is 2 to 3 hours. Criterion will be randomly selected from the following five options:""")
-    container = st.container(border=True)
+
     for i, criterion in CRITERIA.items():
-        container.write(f"▸ **{criterion[0]}**: {criterion[1]}")
-        if criterion[2]:
-            container.caption(f"Example: {criterion[2]}")
-    container.write("*The description of the criterion will be displayed again, no need to worry about memorizing it.*")
+        with st.expander(f"**{criterion[0]}**: {criterion[1]}", expanded=True):
+            if criterion[2]:
+                st.write(f"Violation example: {criterion[2]}")
+            good_example_video = osp.join("example_videos", f"criterion{i}-good.mp4")
+            bad_example_video = osp.join("example_videos", f"criterion{i}-bad.mp4")
+            reason_text = osp.join("example_videos", f"criterion{i}-reason.txt")
+            if osp.exists(good_example_video):
+                with open(reason_text) as f:
+                    reason_text = f.read()
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.caption("Good example👍")
+                    st.video(good_example_video, start_time=0, format="video/mp4")
+                with col2:
+                    st.caption("Bad example👎")
+                    st.video(bad_example_video, start_time=0, format="video/mp4")
+                
+                st.caption(f"{reason_text}")
+
+
+    st.write("*The description of the criterion will be displayed again, no need to worry about memorizing it.*")
     st.markdown("### Instructions")
     st.markdown("""
-                1. If displayed, read the prompt that generated the videos.
+                1. Watch all four videos considering the given criteria. *Our monitoring system will flag your submission if you do not watch the entire duration of all four videos.* 
 
-                2. Watch all four videos considering the given criteria. *Our monitoring system will flag your submission if you do not watch the entire duration of all four videos.*
+                2. If necessary for evaluation based on the criteria(e.g. Text following), the prompts that generated the four videos will be displayed. Please read the prompts carefully
 
-                3. Rank them based on the provided criterion; **focus strictly on this criterion** WITHOUT taking into account any other criteria or personal preferences. **1 for the best video and 4 for the worst video**
+                3. Rank them based on the provided criterion; **focus strictly on this criterion** WITHOUT taking into account any other criteria or personal preferences. **1 for the best video and 4 for the worst video**.
 
                 4. Feel free to watch the videos as many times as you need to make the best choice. However, you will NOT be able to return to the previous question after pressing the **[ Next ]** button.
 
@@ -123,14 +140,14 @@ def show_videos(vc_id):
     with cols[0]:
         st.markdown(f"#### Criteria - `{CRITERIA[criteria_id][0]}`:")
         st.markdown(f"{CRITERIA[criteria_id][1]}")
-        st.caption(f"*Example violatione: {CRITERIA[criteria_id][2]}")
+        st.caption(f"*Example violation: {CRITERIA[criteria_id][2]}")
     with cols[1]:
         rankings = {}
         for i, mark in enumerate(marks):
             rankings[mark] = st.pills(f"Video {mark}'s rank", options=[1, 2, 3, 4], key=f"vid-{video_id}-{mark}")
     
     if None in rankings.values():
-        st.warning(f"‼️ 1 is the best video and 4 is the worst video, as judged by the criterion.")
+        st.warning(f"‼️ Rank the videos. **1 is the best video** and **4 is the worst** video, as judged by the criterion.")
         return None
 
     elif set(rankings.values()) != {1, 2, 3, 4}:

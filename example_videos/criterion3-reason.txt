@@ -1,0 +1,1 @@
+In the bad example, Jerry's room appears different across scenes, missing the flower paintings and having an inconsistent room configuration. Objects do not maintain a consistent placement without any reason, indicating a lack of scene consistency.

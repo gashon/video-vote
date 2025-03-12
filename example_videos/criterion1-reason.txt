@@ -1,0 +1,1 @@
+In the bad example, Jerry suddenly disappears as a handkerchief falls slightly, and Tom's body shape distorts randomly, resulting in poorer motion smoothness compared to the good example.
