@@ -46,7 +46,11 @@ if __name__ == "__main__":
             )
             st.stop()
     
-    if cookies["batch_id"] == "None" or int(cookies["batch_id"]) != user_id%NUM_BATCHES:
+    if (
+        cookies["batch_id"] == "None"
+        or int(cookies["batch_id"]) != user_id%NUM_BATCHES
+        or ("user_id" in cookies and cookies["user_id"] != str(user_id))
+    ):
 
         ready = start_page(user_id)
 
