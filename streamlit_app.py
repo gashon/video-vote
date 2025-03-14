@@ -96,7 +96,7 @@ if __name__ == "__main__":
         if "current_index" not in st.session_state or current_index!=st.session_state.current_index or "current_index_start_time" not in st.session_state:
             st.session_state.current_index_start_time = time.time()
         st.session_state.current_index = current_index
-        rankings = show_videos((prompt_id, criterion_id))
+        rankings = show_videos_page((prompt_id, criterion_id))
         button_placeholder = st.empty()
 
         with button_placeholder:
