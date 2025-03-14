@@ -2,7 +2,9 @@ import streamlit as st
 from streamlit_sortables import sort_items
 import random
 import os.path as osp
-from batch_manager import NUM_PROMPTS_PER_GROUP
+from batch_manager import NUM_PROMPTS_PER_GROUP, NUM_BATCHES
+import io
+from fpdf import FPDF
 
 VIDEO_LENGTH = 9
 VIDEO_ROOT = "video/3sec"
@@ -88,7 +90,34 @@ def start_page(user_id):
     st.markdown("If you are ready, click the **[ Start ]** button below to begin.")
     return all(checked)
 
-def show_videos(vc_id):
+def success_final_page(rows):
+        user_id = rows[0][0]
+        batch_id = rows[0][1]
+        assert batch_id == user_id % NUM_BATCHES, f"Batch id mismatch: {batch_id} != {user_id % NUM_BATCHES}"
+        st.success(f"User-{user_id:03d} have completed all evaluations.\n To download your receipt as **proof of completion**, simply click the button below. Thank you for your participation!")
+        rows = sorted(rows, key=lambda x: x[2])
+
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+
+        pdf.cell(0, 10, f"Receipt for user{user_id:03d}-batch{batch_id:03d}", ln=True)
+        for row in rows:
+            pdf.cell(0, 10, " ".join([str(item) for item in row[2:]]), ln=True)
+
+        pdf_buffer = io.BytesIO()
+        pdf_buffer.write(pdf.output(dest='S').encode('latin1'))
+        pdf_buffer.seek(0)
+
+        st.download_button(
+            label="📥 Download Receipt",
+            data=pdf_buffer,
+            file_name=f"user{user_id:03d}-batch{batch_id:03d}.pdf",
+            mime="application/pdf"
+        )
+
+def show_videos_page(vc_id):
     video_id, criteria_id = vc_id
     st.subheader(f'{st.session_state.current_index+1}/{NUM_PROMPTS_PER_GROUP}')
     st.progress(st.session_state.current_index / NUM_PROMPTS_PER_GROUP)

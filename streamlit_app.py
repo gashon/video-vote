@@ -3,8 +3,8 @@ import time
 import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
-from response_handler import create_db, save_response, count_valid_user_responses
-from video_display import DEBUG_MODE, MODEL_LIST, show_videos, start_page
+from response_handler import create_db, save_response, count_valid_user_responses, fetch_valid_user_responses
+from streamlit_pages import DEBUG_MODE, MODEL_LIST, show_videos_page, start_page, success_final_page
 from batch_manager import create_batches, NUM_PROMPTS_PER_GROUP, NUM_BATCHES
 
 
@@ -69,7 +69,8 @@ if __name__ == "__main__":
         missing_responses = set(range(NUM_PROMPTS_PER_GROUP))-(saved_responses)
         count = len(saved_responses)
         if count == NUM_PROMPTS_PER_GROUP:
-            st.success("You have completed all evaluations! Thanks for your participation!")
+            _, entries = fetch_valid_user_responses(int(cookies["user_id"]))
+            success_final_page(entries)
         else: 
             st.warning(f"You have evaluated {count} prompts and {len(missing_responses)} missing. Missing indices: {missing_responses}")
             with st.spinner("Redirecting to the missing prompt in 5 second..."):
