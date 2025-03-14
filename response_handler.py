@@ -90,7 +90,7 @@ def fetch_valid_user_responses(user_id):
                 batch_id == user_id%NUM_BATCHES
             ):
                 unique_pairs.add((current_index, prompt_id, criteria_id))
-                evaluations.append([user_id, batch_id, current_index, prompt_id, criteria_id, rating_list])
+                evaluations.append([user_id, batch_id, current_index, prompt_id, criteria_id, rating_list, timestamp])
     conn.close()
     return set([pair[0] for pair in unique_pairs]), evaluations
 
