@@ -198,7 +198,7 @@ def show_videos_page(vc_id):
 def admin_page():
     st.title("Admin Page")
     password = st.text_input("Enter admin password:", type="password")
-    if password == "a":
+    if password == "lakeside6pm":
         st.success("Access granted!")
         
         report_data = io.StringIO()
