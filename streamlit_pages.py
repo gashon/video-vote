@@ -203,7 +203,7 @@ def admin_page():
         
         report_data = io.StringIO()
         entries = fetch_all_responses()
-        entries = sorted(entries, key=lambda x: (x[0], x[2]))
+        entries = sorted(entries, key=lambda x: (x[1], x[3]))
         for entry in entries:
             json.dump(entry, report_data)
             report_data.write("\n")
