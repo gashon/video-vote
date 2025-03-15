@@ -36,7 +36,7 @@ if __name__ == "__main__":
         cookies.save()
     
     ### read user_id/admin from the URL
-    if "admin" in st.query_params and st.query_params["admin"] == ["true"]:
+    if "admin" in st.query_params and st.query_params["admin"] == "true":
         user_id = -1 
         # if the url is 'https://ttt-video-vote.streamlit.app/?admin=true', then the admin page will be shown
     elif "user_id" in st.query_params:
