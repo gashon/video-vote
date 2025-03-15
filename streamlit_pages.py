@@ -198,7 +198,7 @@ def show_videos_page(vc_id):
 def admin_page():
     st.title("Admin Page")
     password = st.text_input("Enter admin password:", type="password")
-    if password == "lakeside6pm":
+    if password == "lakeside6":
         st.success("Access granted!")
         
         report_data = io.StringIO()
@@ -216,6 +216,7 @@ def admin_page():
             file_name="admin_report.jsonl",
             mime="application/jsonl"
         )
+        st.write("Refresh the page before downloading the most recent report.")
     else:
         if password:
             st.error("Access denied! Incorrect password.")
