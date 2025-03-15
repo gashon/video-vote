@@ -4,7 +4,7 @@ import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
 from response_handler import create_db, save_response, count_valid_user_responses, fetch_valid_user_responses
-from streamlit_pages import DEBUG_MODE, MODEL_LIST, show_videos_page, start_page, success_final_page
+from streamlit_pages import DEBUG_MODE, MODEL_LIST, show_videos_page, start_page, success_final_page, admin_page
 from batch_manager import create_batches, NUM_PROMPTS_PER_GROUP, NUM_BATCHES
 
 
@@ -35,9 +35,13 @@ if __name__ == "__main__":
         cookies["batch_id"] = "None"  # cookies must be string
         cookies.save()
     
-    try:
+    ### read user_id/admin from the URL
+    if "admin" in st.query_params and st.query_params["admin"] == ["true"]:
+        user_id = -1 
+        # if the url is 'https://ttt-video-vote.streamlit.app/?admin=true', then the admin page will be shown
+    elif "user_id" in st.query_params:
         user_id = int(st.query_params["user_id"])
-    except KeyError:
+    else:
         if DEBUG_MODE:
             user_id = 67
         else:
@@ -45,8 +49,11 @@ if __name__ == "__main__":
                 "Assigned URL error: this is an invalid url. Please use the assigned URL or contact ujinsong@stanford.edu"
             )
             st.stop()
-    
-    if (
+    ###
+
+    if user_id == -1:
+        admin_page()
+    elif (
         cookies["batch_id"] == "None"
         or int(cookies["batch_id"]) != user_id%NUM_BATCHES
         or ("user_id" in cookies and cookies["user_id"] != str(user_id))

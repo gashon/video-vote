@@ -53,7 +53,7 @@ def save_response(prompt_id, criteria_id, rating, batch_id, user_id, current_ind
     conn.commit()
     conn.close()
 
-def fetch_evaluations():
+def fetch_all_responses():
     conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
     c = conn.cursor()
     c.execute("SELECT * FROM evaluations")

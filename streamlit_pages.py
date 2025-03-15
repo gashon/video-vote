@@ -2,9 +2,11 @@ import streamlit as st
 from streamlit_sortables import sort_items
 import random
 import os.path as osp
-from batch_manager import NUM_PROMPTS_PER_GROUP, NUM_BATCHES
 import io
 from fpdf import FPDF
+import json
+from batch_manager import NUM_PROMPTS_PER_GROUP, NUM_BATCHES, NUM_EVALUATORS
+from response_handler import fetch_all_responses
 
 VIDEO_LENGTH = 9
 VIDEO_ROOT = "video/3sec"
@@ -192,3 +194,28 @@ def show_videos_page(vc_id):
         if DEBUG_MODE:
             st.write(" > ".join([video_list[a][0] for a in sorted_marks]))
         return list(rankings.values())
+
+def admin_page():
+    st.title("Admin Page")
+    password = st.text_input("Enter admin password:", type="password")
+    if password == "a":
+        st.success("Access granted!")
+        
+        report_data = io.StringIO()
+        entries = fetch_all_responses()
+        entries = sorted(entries, key=lambda x: (x[0], x[2]))
+        for entry in entries:
+            json.dump(entry, report_data)
+            report_data.write("\n")
+        
+        report_data.seek(0)
+        
+        st.download_button(
+            label="📥 Download Admin Report",
+            data=report_data.getvalue(),
+            file_name="admin_report.jsonl",
+            mime="application/jsonl"
+        )
+    else:
+        if password:
+            st.error("Access denied! Incorrect password.")
