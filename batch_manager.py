@@ -1,13 +1,13 @@
 import numpy as np
 
-NUM_PROMPTS = 500
+NUM_PROMPTS = 20
 NUM_CRITERIA = 5
 TOTAL_EVALUATIONS = NUM_PROMPTS*NUM_CRITERIA
 
-NUM_EVALUATORS = 250
-NUM_BATCHES = NUM_EVALUATORS//5 # 50
-NUM_GROUPS = NUM_BATCHES//NUM_CRITERIA # 10
-NUM_PROMPTS_PER_GROUP = NUM_PROMPTS//NUM_GROUPS # 50
+NUM_EVALUATORS = 5
+NUM_BATCHES = NUM_EVALUATORS//1 # 5
+NUM_GROUPS = NUM_BATCHES//NUM_CRITERIA # 1
+NUM_PROMPTS_PER_GROUP = NUM_PROMPTS//NUM_GROUPS # 20
 
 def create_batches(return_reverse=False):
     batches = {k:[] for k in range(NUM_BATCHES)}
@@ -25,8 +25,7 @@ def create_batches(return_reverse=False):
     assert np.sum(batches_reverse==-1)==0
     for batch_idx in range(NUM_BATCHES):
         batches[batch_idx] = sorted(batches[batch_idx])
-        assert np.sum(batches_reverse == batch_idx) == 50
-        assert len(batches[batch_idx]) == 50
+        assert np.sum(batches_reverse == batch_idx) == len(batches[batch_idx])
     
     if return_reverse:
         return batches, batches_reverse
