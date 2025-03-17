@@ -9,9 +9,9 @@ from batch_manager import NUM_PROMPTS_PER_GROUP, NUM_BATCHES, NUM_EVALUATORS
 from response_handler import fetch_all_responses
 
 VIDEO_LENGTH = 9
-VIDEO_ROOT = "video/3sec"
+VIDEO_ROOT = f"video/{VIDEO_LENGTH}sec"
 DEBUG_MODE = True if osp.exists("/home/yusu/new_home/code/y/video-vote") else False
-MODEL_LIST = ["attn", 'mamba2', 'm1', 'm2']
+MODEL_LIST = ["attn", 'deltanet', 'mamba', 'swa', 'ttt-linear', 'ttt-mlp']
 CRITERIA = {
     0: ["Text Following",
         "How close does the video follow the text prompt, including the key elements and actions?",
@@ -132,7 +132,7 @@ def show_videos_page(vc_id):
         st.session_state.clicked_video_ids = set()
     
     st.divider()
-    marks = ["A", "B", "C", "D"]
+    marks = ["A", "B", "C", "D", "E", "F"]
     st.markdown("#### Videos:")
 
     if 'video_id' not in st.session_state or st.session_state.video_id != video_id:
@@ -141,7 +141,7 @@ def show_videos_page(vc_id):
 
         st.session_state.clicked_video_count += 1
         
-        video_list = [(model, osp.join(VIDEO_ROOT, model+"_newtest", "step-8000", f"{video_id%15:03d}-00.mp4")) for model in MODEL_LIST]
+        video_list = [(model, osp.join(VIDEO_ROOT, model, f"{video_id:03d}.mp4")) for model in MODEL_LIST]
 
         random.shuffle(video_list)
         video_list = {mark: video for mark, video in zip(marks, video_list)}
@@ -161,13 +161,13 @@ def show_videos_page(vc_id):
             st.video(video[1], autoplay=(i==0))
     
     if CRITERIA[criteria_id][0] in ["Text Following", "Character Emotions"]:
-        with open(osp.join(VIDEO_ROOT, MODEL_LIST[0]+"_newtest", "step-8000", f"{video_id%15:03d}.txt")) as f:
+        with open(osp.join(VIDEO_ROOT, MODEL_LIST[0], f"{video_id:03d}.txt")) as f:
             prompt = f.read()
         st.markdown("#### Prompt:")
         st.markdown(f"{prompt}")
     st.divider()
 
-    cols = st.columns([0.7, 0.3])
+    cols = st.columns([0.6, 0.4])
     with cols[0]:
         st.markdown(f"#### Criteria - `{CRITERIA[criteria_id][0]}`:")
         st.markdown(f"{CRITERIA[criteria_id][1]}")
@@ -175,13 +175,13 @@ def show_videos_page(vc_id):
     with cols[1]:
         rankings = {}
         for i, mark in enumerate(marks):
-            rankings[mark] = st.pills(f"Video {mark}'s rank", options=[1, 2, 3, 4], key=f"vid-{video_id}-{mark}")
+            rankings[mark] = st.pills(f"Video {mark}'s rank", options=[1, 2, 3, 4, 5, 6], key=f"vid-{video_id}-{mark}")
     
     if None in rankings.values():
-        st.warning(f"‼️ Rank the videos. **1 is the best video** and **4 is the worst** video, as judged by the criterion.")
+        st.warning(f"‼️ Rank the videos. **1 is the best video** and **6 is the worst** video, as judged by the criterion.")
         return None
 
-    elif set(rankings.values()) != {1, 2, 3, 4}:
+    elif set(rankings.values()) != {1, 2, 3, 4, 5, 6}:
         st.warning(f"‼️ Each rank must be unique")
         return None
     
@@ -189,7 +189,7 @@ def show_videos_page(vc_id):
         sorted_marks = sorted(rankings, key=lambda x: rankings[x])
         rankings = get_rankings([video_list[a][0] for a in sorted_marks])
         with cols[0]:
-            st.container(border=True).markdown(f"###### Your ranking: (best)`{sorted_marks[0]}` -> `{sorted_marks[1]}` -> `{sorted_marks[2]}` -> `{sorted_marks[3]}` (worst)")
+            st.container(border=True).markdown(f"###### Your ranking: (best)`{sorted_marks[0]}` -> `{sorted_marks[1]}` -> `{sorted_marks[2]}` -> `{sorted_marks[3]}` -> `{sorted_marks[4]}` -> `{sorted_marks[5]}` (worst)")
         st.info(f"💡If you are satisfied with your ranking, click on the **[ Next ]** button to proceed.")
         if DEBUG_MODE:
             st.write(" > ".join([video_list[a][0] for a in sorted_marks]))
