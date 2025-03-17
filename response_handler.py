@@ -85,8 +85,8 @@ def fetch_valid_user_responses(user_id):
                 isinstance(prompt_id, int) and
                 isinstance(criteria_id, int) and
                 isinstance(rating_list, list) and
-                len(rating_list) == 4 and
-                set(rating_list) == {1, 2, 3, 4} and
+                len(rating_list) == 6 and
+                set(rating_list) == {1, 2, 3, 4, 5, 6} and
                 batch_id == user_id%NUM_BATCHES
             ):
                 unique_pairs.add((current_index, prompt_id, criteria_id))
