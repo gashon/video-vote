@@ -1,4 +1,3 @@
-import json
 import os
 import os.path as osp
 import sqlite3
@@ -6,20 +5,7 @@ import time
 
 import streamlit as st
 
-from batch_manager import get_eval_batch_size
-from config import (
-    NUM_COMBINATIONS,
-    NUM_CRITERIA,
-    NUM_EVALUATORS,
-    NUM_PROMPTS,
-    NUM_TURNS,
-    TOTAL_EVALUATIONS,
-    get_combo,
-    get_criteria_count,
-    get_prompt_count,
-    get_total_evaluations_count,
-    get_turn_count,
-)
+from config import NUM_COMBINATIONS, NUM_CRITERIA, NUM_PROMPTS, NUM_TURNS
 
 SAVE_PATH = "eval"
 
@@ -221,7 +207,7 @@ def fetch_all_responses():
     conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
     c = conn.cursor()
     c.execute(
-        """SELECT * FROM evaluations ORDER BY prompt_id, criteria_id, combo_id, turn_id"""
+        """SELECT * FROM evaluations GROUP BY user_id ORDER BY evaluation_pool_id"""
     )
     rows = c.fetchall()
     column_names = [desc[0] for desc in c.description]

@@ -51,6 +51,8 @@ if __name__ == "__main__":
     if st.query_params.get("admin", "") == "true":
         admin_page()
 
+        st.stop()
+
     if all_evaluations_assigned():
         st.warning(
             "All evaluations have been assigned. Thank you for your participation!"

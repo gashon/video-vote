@@ -195,6 +195,7 @@ def show_videos_page(eval_id):
 def admin_page():
     st.title("Admin Page")
     password = st.text_input("Enter admin password:", type="password")
+
     if password == "lakeside6":
         st.success("Access granted!")
 
