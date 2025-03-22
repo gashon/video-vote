@@ -36,7 +36,7 @@ def generate_summary(prompt_text, api_key):
 
     payload = {
         "model": "claude-3-7-sonnet-20250219",
-        "max_tokens": 150,
+        "max_tokens": 15000,
         "temperature": 0.7,
         "messages": [{"role": "user", "content": prompt_text}],
         "system": SYSTEM_PROMPT,
@@ -139,7 +139,14 @@ if __name__ == "__main__":
     BASE_PREFIX = "18sec"
 
     # All directories to process
-    DIRECTORIES = ["swa", "m1", "m2", "attn", "deltanet", "mamba"]
+    DIRECTORIES = [
+        "sliding-window",
+        "ttt-linear",
+        "ttt-mlp",
+        "attention",
+        "deltanet",
+        "mamba",
+    ]
 
     # Process all prompts and write summaries to all directories
     process_prompts(BASE_PREFIX, DIRECTORIES, API_KEY)
