@@ -14,6 +14,36 @@ from config import (
 )
 
 
+def all_evaluations_assigned():
+    """
+    Check if all evaluations have been assigned to evaluators
+    Returns:
+        bool: True if all evaluations have been assigned, False otherwise
+    """
+    conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
+    c = conn.cursor()
+    try:
+        # No existing in_progress evaluation for this user, so find a new one
+        # Calculate timestamp for 30 minutes ago
+        cutoff_time = datetime.datetime.now() - datetime.timedelta(minutes=30)
+        cutoff_time_str = cutoff_time.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Find an available evaluation
+        c.execute(
+            """
+            SELECT COUNT(*) FROM evaluation_pool
+            WHERE 
+                status = 'available' OR 
+                (status = 'in_progress' AND assigned_at < ?)
+            """,
+            (cutoff_time_str,),
+        )
+        count = c.fetchone()[0]
+        return count == 0
+    finally:
+        conn.close()
+
+
 def get_sample_from_pool(user_id):
     """
     For a given user:

@@ -5,7 +5,7 @@ from streamlit_cookies_manager import CookieManager
 
 from batch_manager import create_batches
 from config import DEBUG_MODE, get_eval_batch_size
-from pool_manager import get_sample_from_pool
+from pool_manager import all_evaluations_assigned, get_sample_from_pool
 from response_handler import (
     create_db,
     get_new_user_id,
@@ -51,6 +51,12 @@ if __name__ == "__main__":
     if st.query_params.get("admin", "") == "true":
         admin_page()
 
+    if all_evaluations_assigned():
+        st.warning(
+            "All evaluations have been assigned. Thank you for your participation!"
+        )
+        st.stop()
+
     # Start Page
     elif "user_id" not in cookies:
         ready = start_page()
@@ -67,12 +73,11 @@ if __name__ == "__main__":
         user_id = int(cookies["user_id"])
         eval_batch_size = get_eval_batch_size()
 
-        saved_responses = get_user_eval_count(user_id)
+        saved_responses_count = get_user_eval_count(user_id)
         expected_responses = eval_batch_size
-        remaining_responses = expected_responses - saved_responses
+        remaining_responses = expected_responses - saved_responses_count
 
-        count = len(saved_responses)
-        if count == eval_batch_size:
+        if saved_responses_count == eval_batch_size:
             success_final_page(user_id)
             # st.caption(f"If you are completing another set of evaluations, please click below. Only do this if you are confident that you have already claimed the job.")
             # if st.button("Start new set"):
@@ -82,12 +87,12 @@ if __name__ == "__main__":
             #     st.rerun()
         else:
             st.warning(
-                f"You have evaluated {count} prompts and {remaining_responses} missing"
+                f"You have evaluated {saved_responses_count} prompts and {remaining_responses} missing"
             )
             with st.spinner("Redirecting to the missing prompt in 5 second..."):
                 time.sleep(5)
             cookies["final_page"] = False
-            cookies["current_index"] = saved_responses
+            cookies["current_index"] = saved_responses_count
             cookies.save()
             st.rerun()
 
@@ -131,17 +136,14 @@ if __name__ == "__main__":
                     review_duration=review_duration,
                 )
 
-                saved_responses = get_user_eval_count(user_id)
+                saved_responses_count = get_user_eval_count(user_id)
                 expected_responses = get_eval_batch_size()
-                remaining_responses = expected_responses - saved_responses
-
-                print("remaining_responses", remaining_responses)
-                print("saved_responses", saved_responses)
+                remaining_responses = expected_responses - saved_responses_count
 
                 if remaining_responses == 0:
                     cookies["final_page"] = True
 
-                cookies["current_index"] = saved_responses
+                cookies["current_index"] = saved_responses_count
 
                 cookies.save()
                 st.rerun()
