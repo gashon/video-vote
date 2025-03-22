@@ -1,38 +1,45 @@
 from itertools import combinations
 
-
 VIDEO_LENGTH = 18
 VIDEO_ROOT = f"video/{VIDEO_LENGTH}sec"
 
 NUM_PROMPTS = 100
 NUM_CRITERIA = 5
-NUM_TURNS = 3
+NUM_TURNS = 1
 NUM_COMBINATIONS = 15
-TOTAL_EVALUATIONS = NUM_PROMPTS*NUM_CRITERIA*NUM_COMBINATIONS*NUM_TURNS # 22500
-NUM_EVALUATORS =  450
+TOTAL_EVALUATIONS = NUM_PROMPTS * NUM_CRITERIA * NUM_COMBINATIONS * NUM_TURNS  # 22500
+NUM_EVALUATORS = 150
 
 DEBUG_MODE = False
 
 
-MODEL_LIST = ["attn", 'deltanet', 'mamba', 'swa', 'm1', 'm2']
+MODEL_LIST = ["attn", "deltanet", "mamba", "swa", "m1", "m2"]
 CRITERIA = {
-    0: ["Text Following",
+    0: [
+        "Text Following",
         "How close does the video follow the text prompt, including the key elements and actions?",
-        "If the prompt says Tom should be in the kitchen but the video shows him somewhere else, like the living room, this means the video doesn't follow the text."],
-    1: ["Motion Smoothness",
+        "If the prompt says Tom should be in the kitchen but the video shows him somewhere else, like the living room, this means the video doesn't follow the text.",
+    ],
+    1: [
+        "Motion Smoothness",
         "Does the motion of characters look smooth and consistent throughout the video? It checks that movements are clear, fluid, and don't have strange jumps or visual glitches.",
-        "If Jerry suddenly appears somewhere else, moves in jerky steps, or his shape distorts randomly, this shows poor motion smoothness."],
-    2: ["Aesthetics",
+        "If Jerry suddenly appears somewhere else, moves in jerky steps, or his shape distorts randomly, this shows poor motion smoothness.",
+    ],
+    2: [
+        "Aesthetics",
         "How pleasing does the video look? It checks the quality of colors, lighting, camera angles, and how everything fits together visually.",
-        "If the colors clash, lighting changes abruptly, or scenes look messy and unattractive, the video has poor visual appeal."],
-    3: ["Scene Consistency",
+        "If the colors clash, lighting changes abruptly, or scenes look messy and unattractive, the video has poor visual appeal.",
+    ],
+    3: [
+        "Scene Consistency",
         "Do characters and settings stay the same across scenes? It checks if characters, objects, and locations remain consistent, even if there's a gap between scenes.",
-        "If Jerry has a red scarf in one scene but suddenly doesn't have it in the next scene without explanation, the video has poor scene consistency."
-        ],
-    4: ["Character Emotions",
+        "If Jerry has a red scarf in one scene but suddenly doesn't have it in the next scene without explanation, the video has poor scene consistency.",
+    ],
+    4: [
+        "Character Emotions",
         "Does the video clearly show the emotions of characters through their facial expressions and body language? It checks if characters display feelings that match the described actions or situations.",
-        "If Jerry is supposed to look scared but instead seems calm or happy, that's a violation."
-        ]
+        "If Jerry is supposed to look scared but instead seems calm or happy, that's a violation.",
+    ],
 }
 
 
