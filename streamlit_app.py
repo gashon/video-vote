@@ -4,17 +4,12 @@ import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
 from batch_manager import create_batches
-from config import (
-    DEBUG_MODE,
-    get_eval_batch_count,
-    get_eval_batch_size,
-    get_global_index,
-)
+from config import DEBUG_MODE, get_eval_batch_size
 from pool_manager import get_sample_from_pool
 from response_handler import (
     create_db,
     get_new_user_id,
-    get_valid_user_response_indices,
+    get_user_eval_count,
     save_response,
 )
 from streamlit_pages import admin_page, show_videos_page, start_page, success_final_page
@@ -72,13 +67,13 @@ if __name__ == "__main__":
         user_id = int(cookies["user_id"])
         eval_batch_size = get_eval_batch_size()
 
-        saved_responses, evals = get_valid_user_response_indices(user_id)
-        expected_responses = set(range(eval_batch_size))
-        missing_responses = expected_responses - saved_responses
+        saved_responses = get_user_eval_count(user_id)
+        expected_responses = eval_batch_size
+        remaining_responses = expected_responses - saved_responses
 
         count = len(saved_responses)
         if count == eval_batch_size:
-            success_final_page(user_id, evals)
+            success_final_page(user_id)
             # st.caption(f"If you are completing another set of evaluations, please click below. Only do this if you are confident that you have already claimed the job.")
             # if st.button("Start new set"):
             #     del cookies["user_id"]
@@ -87,12 +82,12 @@ if __name__ == "__main__":
             #     st.rerun()
         else:
             st.warning(
-                f"You have evaluated {count} prompts and {len(missing_responses)} missing. Missing indices: {missing_responses}"
+                f"You have evaluated {count} prompts and {remaining_responses} missing"
             )
             with st.spinner("Redirecting to the missing prompt in 5 second..."):
                 time.sleep(5)
             cookies["final_page"] = False
-            cookies["current_index"] = min(missing_responses)
+            cookies["current_index"] = saved_responses
             cookies.save()
             st.rerun()
 
@@ -104,7 +99,6 @@ if __name__ == "__main__":
         st.caption(f"User-{user_id:03d} - Index-{current_index:03d})")
 
         eval = get_sample_from_pool(user_id)
-        global_index = get_global_index(user_id, current_index)
 
         prompt_id, criteria_id, combo_id, turn_id = eval
 
@@ -125,7 +119,6 @@ if __name__ == "__main__":
                     time.time() - st.session_state.current_index_start_time
                 )
                 save_response(
-                    global_index=global_index,
                     current_index=current_index,
                     prompt_id=prompt_id,
                     criteria_id=criteria_id,
@@ -138,21 +131,19 @@ if __name__ == "__main__":
                     review_duration=review_duration,
                 )
 
-                saved_responses, _ = get_valid_user_response_indices(user_id)
-                expected_responses = set(range(get_eval_batch_size()))
-                missing_responses = expected_responses - saved_responses
+                saved_responses = get_user_eval_count(user_id)
+                expected_responses = get_eval_batch_size()
+                remaining_responses = expected_responses - saved_responses
 
-                if len(missing_responses) == 0:
+                print("remaining_responses", remaining_responses)
+                print("saved_responses", saved_responses)
+
+                if remaining_responses == 0:
                     cookies["final_page"] = True
-                elif current_index in saved_responses:
-                    cookies["current_index"] = min(missing_responses)
-                else:  # should not happen
-                    st.warning(
-                        f"Error: Your response for prompt {current_index} was not saved. Try again."
-                    )
+
+                cookies["current_index"] = saved_responses
 
                 cookies.save()
                 st.rerun()
 
     st.caption(f"If you have any questions, please contact kdalal@berkeley.edu")
-

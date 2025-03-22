@@ -95,7 +95,7 @@ def start_page():
     return all(checked)
 
 
-def success_final_page(user_id, evals):
+def success_final_page(user_id):
     st.success(
         f"User-{user_id:03d} have completed all evaluations.\n Please enter code CJKM933K to get your reward. Thank you for your participation! Note: Once you leave this page, you cannot return."
     )

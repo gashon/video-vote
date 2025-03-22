@@ -16,7 +16,6 @@ from config import (
     TOTAL_EVALUATIONS,
     get_combo,
     get_criteria_count,
-    get_global_index,
     get_prompt_count,
     get_total_evaluations_count,
     get_turn_count,
@@ -54,7 +53,6 @@ def create_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT, 
                 evaluation_pool_id INTEGER,
                 user_id INTEGER, 
-                global_index INTEGER,
                 current_index INTEGER, 
                 left_model TEXT,
                 right_model TEXT,
@@ -64,8 +62,7 @@ def create_db():
                 clicked_video_unrepeated_count INTEGER, 
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (evaluation_pool_id) REFERENCES evaluation_pool(id),
-                FOREIGN KEY (user_id) REFERENCES users(id),
-                UNIQUE(user_id, global_index)
+                FOREIGN KEY (user_id) REFERENCES users(id)
             )"""
     )
 
@@ -101,7 +98,6 @@ def create_db():
 
 
 def save_response(
-    global_index,
     current_index,
     prompt_id,
     criteria_id,
@@ -126,7 +122,6 @@ def save_response(
         print(
             "SAVING RESPONSE",
             f"user_id={user_id}",
-            f"global_index={global_index}",
             f"current_index={current_index}",
             f"prompt_id={prompt_id}",
             f"criteria_id={criteria_id}",
@@ -175,7 +170,6 @@ def save_response(
             """
             INSERT INTO evaluations (
                 user_id, 
-                global_index, 
                 current_index, 
                 evaluation_pool_id,
                 left_model, 
@@ -184,20 +178,10 @@ def save_response(
                 review_duration, 
                 clicked_video_count, 
                 clicked_video_unrepeated_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(user_id, global_index) DO UPDATE SET
-                current_index = excluded.current_index,
-                evaluation_pool_id = excluded.evaluation_pool_id,
-                left_model = excluded.left_model,
-                right_model = excluded.right_model,
-                rating = excluded.rating,
-                review_duration = excluded.review_duration,
-                clicked_video_count = excluded.clicked_video_count,
-                clicked_video_unrepeated_count = excluded.clicked_video_unrepeated_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 user_id,
-                global_index,
                 current_index,
                 pool_id,
                 left_model,
@@ -247,59 +231,16 @@ def fetch_all_responses():
     return rows, column_names
 
 
-def is_entry_valid(entry):
-    (
-        user_id,
-        global_index,
-        current_index,
-        eval_pool_id,
-        left_model,
-        right_model,
-        rating,
-    ) = entry
-
-    batch_size = get_eval_batch_size()
-
-    # Check indexing
-    if global_index != get_global_index(user_id, current_index):
-        return False
-
-    if global_index >= get_total_evaluations_count():
-        return False
-
-    if current_index >= batch_size:
-        return False
-
-    # Check Rating
-    if rating < 0 or rating > 2:
-        return False
-
-    return True
-
-
-def get_valid_user_response_indices(user_id):
+def get_user_eval_count(user_id):
     conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
     c = conn.cursor()
     c.execute(
-        "SELECT DISTINCT user_id, global_index, current_index, evaluation_pool_id, left_model, right_model, rating FROM evaluations WHERE user_id = ?",
+        "SELECT COUNT(*) FROM evaluations WHERE user_id = ?",
         (user_id,),
     )
-    rows = c.fetchall()
-    visited_indices = set()
-    entries = []
-
-    rows = sorted(rows, key=lambda x: x[-1], reverse=True)
-    for row in rows:
-        curr_user_id, current_index = row[0], row[2]
-        assert current_index <= get_eval_batch_size()
-        assert curr_user_id == user_id, "DB returned user_id not associated with user."
-
-        if is_entry_valid(row):
-            visited_indices.add(current_index)
-            entries.append(row)
-
+    count = c.fetchone()[0]
     conn.close()
-    return visited_indices, entries
+    return count
 
 
 # if __name__ == "__main__":

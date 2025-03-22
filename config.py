@@ -58,10 +58,6 @@ def get_eval_batch_count():
     return NUM_EVALUATORS
 
 
-def get_global_index(user_id, current_index):
-    return (user_id % get_eval_batch_count()) * get_eval_batch_size() + current_index
-
-
 def get_criteria(criteria_id):
     return CRITERIA[criteria_id]
 
