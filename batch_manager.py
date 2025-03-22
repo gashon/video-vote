@@ -1,40 +1,36 @@
 import numpy as np
+import random
 
-NUM_PROMPTS = 20
-NUM_CRITERIA = 5
-TOTAL_EVALUATIONS = NUM_PROMPTS*NUM_CRITERIA
+from config import (
+    NUM_PROMPTS,
+    NUM_CRITERIA,
+    NUM_TURNS,
+    NUM_COMBINATIONS,
+    TOTAL_EVALUATIONS,
+    NUM_EVALUATORS
+)
 
-NUM_EVALUATORS = 5
-NUM_BATCHES = NUM_EVALUATORS//1 # 5
-NUM_GROUPS = NUM_BATCHES//NUM_CRITERIA # 1
-NUM_PROMPTS_PER_GROUP = NUM_PROMPTS//NUM_GROUPS # 20
 
-def create_batches(return_reverse=False):
-    batches = {k:[] for k in range(NUM_BATCHES)}
-    batches_reverse = np.ones((NUM_CRITERIA, NUM_PROMPTS), dtype=int)*(-1)
-    for group in range(NUM_GROUPS):
-        for criteria_idx in range(NUM_CRITERIA):
-            batch_idx = criteria_idx + group*NUM_CRITERIA
-            for prompt_idx in range(group*NUM_PROMPTS_PER_GROUP, (group+1)*NUM_PROMPTS_PER_GROUP):
-                batch_idx = batch_idx%NUM_CRITERIA + group*NUM_CRITERIA
-                batches[batch_idx].append((prompt_idx, criteria_idx))
-                batches_reverse[criteria_idx][prompt_idx] = batch_idx
-                batch_idx += 1
-        
-    # sanity check and sort
-    assert np.sum(batches_reverse==-1)==0
-    for batch_idx in range(NUM_BATCHES):
-        batches[batch_idx] = sorted(batches[batch_idx])
-        assert np.sum(batches_reverse == batch_idx) == len(batches[batch_idx])
-    
-    if return_reverse:
-        return batches, batches_reverse
-    
-    return batches
+def get_eval_batch_size():
+    return TOTAL_EVALUATIONS // NUM_EVALUATORS
 
-if __name__=="__main__":
-    batches, batches_reverse = create_batches(return_reverse=True)
 
-    print('First group of evaluators (row - criteria, column - prompt, entries - batch id):')
-    print(batches_reverse[:, :NUM_PROMPTS_PER_GROUP])
-    print(batches_reverse[:, NUM_PROMPTS_PER_GROUP:2*NUM_PROMPTS_PER_GROUP])
+def create_batches():
+    evals = []
+
+    for prompt in range(NUM_PROMPTS):
+        for criteria in range(NUM_CRITERIA):
+            for turn in range(NUM_TURNS):  # use turn id for uniqueness in db
+                for combo in range(NUM_COMBINATIONS):
+                    curr_eval = (prompt, criteria, combo, turn)
+                    evals.append(curr_eval)
+
+    rng = random.Random(42)  # Guarantee same ordering every time
+    rng.shuffle(evals)  # Need shuffle to prevent feeding evaluators same info every time
+
+    if len(evals) % NUM_EVALUATORS != 0:
+        raise ValueError("Num evals must be divisible by the num evaluators")
+
+    batch_size = get_eval_batch_size()
+
+    return [evals[i * batch_size : (i + 1) * batch_size] for i in range(NUM_EVALUATORS)]

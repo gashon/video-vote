@@ -1,11 +1,13 @@
 import time
+from config import get_eval_batch_count, get_eval_batch_size, get_global_index
 
 import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
-from response_handler import create_db, save_response, count_valid_user_responses, fetch_valid_user_responses
-from streamlit_pages import DEBUG_MODE, MODEL_LIST, show_videos_page, start_page, success_final_page, admin_page
-from batch_manager import create_batches, NUM_PROMPTS_PER_GROUP, NUM_BATCHES
+from response_handler import create_db, save_response, get_valid_user_response_indices, get_new_user_id
+from streamlit_pages import show_videos_page, start_page, success_final_page, admin_page
+from batch_manager import create_batches
+from config import DEBUG_MODE
 
 
 def get_cookie_manager():
@@ -26,58 +28,52 @@ if __name__ == "__main__":
     batches = create_batches()
     if DEBUG_MODE:
         if st.button("Reset"):
-            cookies["batch_id"] = "None"
+            del cookies["user_id"]
             cookies["final_page"] = False
             cookies.save()
             st.rerun()
 
-    if "batch_id" not in cookies or 'current_index' not in cookies:
-        cookies["batch_id"] = "None"  # cookies must be string
+
+    if int(st.query_params.get("user_id", "-1")) >= 0 and cookies.get("user_id", None) is None:
+        cookies["user_id"] = st.query_params["user_id"]
+        cookies["current_index"] = "0"
         cookies.save()
-    
-    ### read user_id/admin from the URL
-    if "admin" in st.query_params and st.query_params["admin"] == "true":
-        user_id = -1 
-        # if the url is 'https://ttt-video-vote.streamlit.app/?admin=true', then the admin page will be shown
-    elif "user_id" in st.query_params:
-        user_id = int(st.query_params["user_id"])
-    else:
-        if DEBUG_MODE:
-            user_id = 67
-        else:
-            st.error(
-                "Assigned URL error: this is an invalid url. Please use the assigned URL or contact ujinsong@stanford.edu"
-            )
-            st.stop()
-    ###
+        st.rerun()
 
-    if user_id == -1:
+
+    # Admin page
+    if st.query_params.get("admin", "") == "true":
         admin_page()
-    elif (
-        cookies["batch_id"] == "None"
-        or int(cookies["batch_id"]) != user_id%NUM_BATCHES
-        or ("user_id" in cookies and cookies["user_id"] != str(user_id))
-    ):
 
-        ready = start_page(user_id)
-
-        batch_id = user_id % NUM_BATCHES
+    # Start Page
+    elif "user_id" not in cookies:
+        ready = start_page()
 
         if st.button("Start", disabled=not ready):
             # cookies must be strings
-            cookies["batch_id"] = str(batch_id)
-            cookies["user_id"] = str(user_id)
+            cookies["user_id"] = str(get_new_user_id())
             cookies["current_index"] = "0"
             cookies.save()
             st.rerun()
 
+    # Final Page
     elif cookies.get("final_page", False):
-        saved_responses = count_valid_user_responses(int(cookies["user_id"]))
-        missing_responses = set(range(NUM_PROMPTS_PER_GROUP))-(saved_responses)
+        user_id = int(cookies["user_id"])
+        eval_batch_size = get_eval_batch_size()
+
+        saved_responses, evals = get_valid_user_response_indices(user_id)
+        expected_responses = set(range(eval_batch_size))
+        missing_responses = expected_responses - saved_responses
+
         count = len(saved_responses)
-        if count == NUM_PROMPTS_PER_GROUP:
-            _, entries = fetch_valid_user_responses(int(cookies["user_id"]))
-            success_final_page(entries)
+        if count == eval_batch_size:
+            success_final_page(user_id, evals)
+            st.caption(f"If you are completing another set of evaluations, please click below. Only do this if you are confident that you have already claimed the job.")
+            if st.button("Start new set"):
+                del cookies["user_id"]
+                del cookies["final_page"]
+                cookies.save()
+                st.rerun()
         else: 
             st.warning(f"You have evaluated {count} prompts and {len(missing_responses)} missing. Missing indices: {missing_responses}")
             with st.spinner("Redirecting to the missing prompt in 5 second..."):
@@ -85,52 +81,56 @@ if __name__ == "__main__":
             cookies["final_page"] = False
             cookies["current_index"] = min(missing_responses)
             cookies.save()
-            assert cookies["batch_id"] != "None"
             st.rerun()
+
+    # Video eval page
     else:
-        batch_id = int(cookies["batch_id"])
         user_id = int(cookies["user_id"])
         current_index = int(cookies["current_index"])
 
-        st.caption(f"User-{user_id:03d} (Batch-{batch_id:03d} - Index-{current_index:03d})")
-        st.session_state.scores = {
-            criterion: {model: 0 for model in MODEL_LIST} for criterion in range(6)
-        }
+        st.caption(f"User-{user_id:03d} - Index-{current_index:03d})")
 
-        vc_ids = batches[batch_id]
+        eval_id = batches[user_id % get_eval_batch_count()][current_index]
+        global_index = get_global_index(user_id, current_index)
 
-        prompt_id, criterion_id = vc_ids[current_index]
+        prompt_id, criteria_id, combo_id, turn_id = eval_id
+
         if "current_index" not in st.session_state or current_index!=st.session_state.current_index or "current_index_start_time" not in st.session_state:
             st.session_state.current_index_start_time = time.time()
         st.session_state.current_index = current_index
-        rankings = show_videos_page((prompt_id, criterion_id))
+
+        left_model, right_model, rating = show_videos_page(eval_id)
         button_placeholder = st.empty()
 
         with button_placeholder:
-            if st.button("Next", disabled=(rankings is None)):
+            if st.button("Next", disabled=(rating is None)):
                 review_duration = int(time.time() - st.session_state.current_index_start_time)
                 save_response(
-                    prompt_id=prompt_id,
-                    criteria_id=criterion_id,
-                    rating=rankings,
-                    batch_id=batch_id,
-                    user_id=user_id,
+                    global_index=global_index,
                     current_index=current_index,
+                    prompt_id=prompt_id,
+                    criteria_id=criteria_id,
+                    turn_id=turn_id,
+                    combo_id=combo_id,
+                    left_model=left_model,
+                    right_model=right_model,
+                    rating=rating,
+                    user_id=user_id,
                     review_duration=review_duration,
                 )
 
-                saved_responses = count_valid_user_responses(user_id)
-                missing_responses = set(range(NUM_PROMPTS_PER_GROUP))-(saved_responses)
-                if len(saved_responses)==0:
-                    cookies["batch_id"] = "None"
-                    st.rerun()
-                elif len(missing_responses) == 0:
+                saved_responses, _ = get_valid_user_response_indices(user_id)
+                expected_responses = set(range(get_eval_batch_size()))
+                missing_responses = expected_responses - saved_responses
+                
+                if len(missing_responses) == 0:
                     cookies["final_page"] = True
                 elif current_index in saved_responses:
                     cookies["current_index"] = min(missing_responses)
                 else: # should not happen
                     st.warning(f"Error: Your response for prompt {current_index} was not saved. Try again.")
                     
-                st.rerun()  # cookie will be saved on rerun
+                cookies.save()
+                st.rerun()
 
-    st.caption(f"If you have any questions, please contact ujinsong@stanford.edu")
+    st.caption(f"If you have any questions, please contact dankoceja@gmail.com")
