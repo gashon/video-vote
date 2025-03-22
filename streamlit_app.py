@@ -68,12 +68,12 @@ if __name__ == "__main__":
         count = len(saved_responses)
         if count == eval_batch_size:
             success_final_page(user_id, evals)
-            st.caption(f"If you are completing another set of evaluations, please click below. Only do this if you are confident that you have already claimed the job.")
-            if st.button("Start new set"):
-                del cookies["user_id"]
-                del cookies["final_page"]
-                cookies.save()
-                st.rerun()
+            # st.caption(f"If you are completing another set of evaluations, please click below. Only do this if you are confident that you have already claimed the job.")
+            # if st.button("Start new set"):
+            #     del cookies["user_id"]
+            #     del cookies["final_page"]
+            #     cookies.save()
+            #     st.rerun()
         else: 
             st.warning(f"You have evaluated {count} prompts and {len(missing_responses)} missing. Missing indices: {missing_responses}")
             with st.spinner("Redirecting to the missing prompt in 5 second..."):
@@ -133,4 +133,4 @@ if __name__ == "__main__":
                 cookies.save()
                 st.rerun()
 
-    st.caption(f"If you have any questions, please contact dankoceja@gmail.com")
+    st.caption(f"If you have any questions, please contact kdalal@berkeley.edu")
