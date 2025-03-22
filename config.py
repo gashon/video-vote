@@ -13,7 +13,14 @@ NUM_EVALUATORS = 150
 DEBUG_MODE = False
 
 
-MODEL_LIST = ["attention", "deltanet", "mamba", "sliding-window", "ttt-linear", "ttt-mlp"]
+MODEL_LIST = [
+    "attention",
+    "deltanet",
+    "mamba",
+    "sliding-window",
+    "ttt-linear",
+    "ttt-mlp",
+]
 CRITERIA = {
     0: [
         "Text Following",

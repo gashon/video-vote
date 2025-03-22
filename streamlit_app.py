@@ -1,13 +1,23 @@
 import time
-from config import get_eval_batch_count, get_eval_batch_size, get_global_index
 
 import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
-from response_handler import create_db, save_response, get_valid_user_response_indices, get_new_user_id
-from streamlit_pages import show_videos_page, start_page, success_final_page, admin_page
 from batch_manager import create_batches
-from config import DEBUG_MODE
+from config import (
+    DEBUG_MODE,
+    get_eval_batch_count,
+    get_eval_batch_size,
+    get_global_index,
+)
+from pool_manager import get_sample_from_pool
+from response_handler import (
+    create_db,
+    get_new_user_id,
+    get_valid_user_response_indices,
+    save_response,
+)
+from streamlit_pages import admin_page, show_videos_page, start_page, success_final_page
 
 
 def get_cookie_manager():
@@ -33,13 +43,14 @@ if __name__ == "__main__":
             cookies.save()
             st.rerun()
 
-
-    if int(st.query_params.get("user_id", "-1")) >= 0 and cookies.get("user_id", None) is None:
+    if (
+        int(st.query_params.get("user_id", "-1")) >= 0
+        and cookies.get("user_id", None) is None
+    ):
         cookies["user_id"] = st.query_params["user_id"]
         cookies["current_index"] = "0"
         cookies.save()
         st.rerun()
-
 
     # Admin page
     if st.query_params.get("admin", "") == "true":
@@ -74,8 +85,10 @@ if __name__ == "__main__":
             #     del cookies["final_page"]
             #     cookies.save()
             #     st.rerun()
-        else: 
-            st.warning(f"You have evaluated {count} prompts and {len(missing_responses)} missing. Missing indices: {missing_responses}")
+        else:
+            st.warning(
+                f"You have evaluated {count} prompts and {len(missing_responses)} missing. Missing indices: {missing_responses}"
+            )
             with st.spinner("Redirecting to the missing prompt in 5 second..."):
                 time.sleep(5)
             cookies["final_page"] = False
@@ -90,21 +103,27 @@ if __name__ == "__main__":
 
         st.caption(f"User-{user_id:03d} - Index-{current_index:03d})")
 
-        eval_id = batches[user_id % get_eval_batch_count()][current_index]
+        eval = get_sample_from_pool(user_id)
         global_index = get_global_index(user_id, current_index)
 
-        prompt_id, criteria_id, combo_id, turn_id = eval_id
+        prompt_id, criteria_id, combo_id, turn_id = eval
 
-        if "current_index" not in st.session_state or current_index!=st.session_state.current_index or "current_index_start_time" not in st.session_state:
+        if (
+            "current_index" not in st.session_state
+            or current_index != st.session_state.current_index
+            or "current_index_start_time" not in st.session_state
+        ):
             st.session_state.current_index_start_time = time.time()
         st.session_state.current_index = current_index
 
-        left_model, right_model, rating = show_videos_page(eval_id)
+        left_model, right_model, rating = show_videos_page(eval)
         button_placeholder = st.empty()
 
         with button_placeholder:
             if st.button("Next", disabled=(rating is None)):
-                review_duration = int(time.time() - st.session_state.current_index_start_time)
+                review_duration = int(
+                    time.time() - st.session_state.current_index_start_time
+                )
                 save_response(
                     global_index=global_index,
                     current_index=current_index,
@@ -122,15 +141,18 @@ if __name__ == "__main__":
                 saved_responses, _ = get_valid_user_response_indices(user_id)
                 expected_responses = set(range(get_eval_batch_size()))
                 missing_responses = expected_responses - saved_responses
-                
+
                 if len(missing_responses) == 0:
                     cookies["final_page"] = True
                 elif current_index in saved_responses:
                     cookies["current_index"] = min(missing_responses)
-                else: # should not happen
-                    st.warning(f"Error: Your response for prompt {current_index} was not saved. Try again.")
-                    
+                else:  # should not happen
+                    st.warning(
+                        f"Error: Your response for prompt {current_index} was not saved. Try again."
+                    )
+
                 cookies.save()
                 st.rerun()
 
     st.caption(f"If you have any questions, please contact kdalal@berkeley.edu")
+
