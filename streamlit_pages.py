@@ -185,9 +185,6 @@ def show_videos_page(eval_id):
         options=["left", "tie", "right"],
         key=f"vid-{prompt_id}-{criteria_id}-{turn_id}-{combo_id}",
     )
-    st.warning(
-        f"Please watch both videos before making your selection. Our software can detect if you have not watched both videos."
-    )
     if rating is None:
 
         return left_model, right_model, None

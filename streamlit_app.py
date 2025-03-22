@@ -4,7 +4,7 @@ import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
 from batch_manager import create_batches
-from config import DEBUG_MODE, get_eval_batch_size
+from config import DEBUG_MODE, MIN_REVIEW_DURATION_IN_SEC, get_eval_batch_size
 from pool_manager import all_evaluations_assigned, get_sample_from_pool
 from response_handler import (
     create_db,
@@ -116,25 +116,39 @@ if __name__ == "__main__":
         st.session_state.current_index = current_index
 
         left_model, right_model, rating = show_videos_page(eval)
+        warning_placeholder = st.empty()
         button_placeholder = st.empty()
+
+        if (
+            "reviewed_before_duration" in cookies
+            and cookies["reviewed_before_duration"] == "true"
+        ):
+            with warning_placeholder:
+                st.warning(
+                    f"WARNING: In order to get the submission code, please spend at least {MIN_REVIEW_DURATION_IN_SEC} seconds accurately reviewing."
+                )
 
         with button_placeholder:
             if st.button("Next", disabled=(rating is None)):
                 review_duration = int(
                     time.time() - st.session_state.current_index_start_time
                 )
-                save_response(
-                    current_index=current_index,
-                    prompt_id=prompt_id,
-                    criteria_id=criteria_id,
-                    turn_id=turn_id,
-                    combo_id=combo_id,
-                    left_model=left_model,
-                    right_model=right_model,
-                    rating=rating,
-                    user_id=user_id,
-                    review_duration=review_duration,
-                )
+                if review_duration < MIN_REVIEW_DURATION_IN_SEC:
+                    cookies["reviewed_before_duration"] = "true"
+                else:
+                    cookies["reviewed_before_duration"] = "false"
+                    save_response(
+                        current_index=current_index,
+                        prompt_id=prompt_id,
+                        criteria_id=criteria_id,
+                        turn_id=turn_id,
+                        combo_id=combo_id,
+                        left_model=left_model,
+                        right_model=right_model,
+                        rating=rating,
+                        user_id=user_id,
+                        review_duration=review_duration,
+                    )
 
                 saved_responses_count = get_user_eval_count(user_id)
                 expected_responses = get_eval_batch_size()
