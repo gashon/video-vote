@@ -1,4 +1,5 @@
 import json
+import os
 import os.path as osp
 import sqlite3
 import time
@@ -10,6 +11,7 @@ SAVE_PATH = "eval"
 
 
 def create_db():
+    os.makedirs(SAVE_PATH, exist_ok=True)
     conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
     c = conn.cursor()
     c.execute(
