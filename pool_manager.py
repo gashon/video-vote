@@ -118,7 +118,10 @@ def get_sample_from_pool(user_id):
 
         row = c.fetchone()
 
-        if not row:
+        assign_a_completed_eval = (
+            not row
+        )  # if no available evaluations, assign a completed one
+        if assign_a_completed_eval:
             # if the user completed all of the allocated evaluations, still select some at random
             c.execute(
                 """
@@ -142,26 +145,24 @@ def get_sample_from_pool(user_id):
 
             row = c.fetchone()
 
-            conn.close()
-            return None
-
         # Convert to dict
         evaluation = dict(row)
 
         # Mark as in_progress
-        c.execute(
-            """
-            UPDATE evaluation_pool 
-            SET 
-                user_id = ?,
-                status = 'in_progress', 
-                assigned_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            """,
-            (user_id, evaluation["id"]),
-        )
+        if not assign_a_completed_eval:
+            c.execute(
+                """
+                UPDATE evaluation_pool 
+                SET 
+                    user_id = ?,
+                    status = 'in_progress', 
+                    assigned_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (user_id, evaluation["id"]),
+            )
 
-        conn.commit()
+            conn.commit()
         return (
             evaluation["prompt_id"],
             evaluation["criteria_id"],
