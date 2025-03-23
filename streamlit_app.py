@@ -79,24 +79,13 @@ if __name__ == "__main__":
         expected_responses = eval_batch_size
         remaining_responses = expected_responses - saved_responses_count
 
-        if saved_responses_count == eval_batch_size:
-            success_final_page(user_id)
-            # st.caption(f"If you are completing another set of evaluations, please click below. Only do this if you are confident that you have already claimed the job.")
-            # if st.button("Start new set"):
-            #     del cookies["user_id"]
-            #     del cookies["final_page"]
-            #     cookies.save()
-            #     st.rerun()
-        else:
-            st.warning(
-                f"You have evaluated {saved_responses_count} prompts and {remaining_responses} missing"
-            )
-            with st.spinner("Redirecting to the missing prompt in 5 second..."):
-                time.sleep(5)
-            cookies["final_page"] = False
-            cookies["current_index"] = saved_responses_count
-            cookies.save()
-            st.rerun()
+        success_final_page(user_id)
+        # st.caption(f"If you are completing another set of evaluations, please click below. Only do this if you are confident that you have already claimed the job.")
+        # if st.button("Start new set"):
+        #     del cookies["user_id"]
+        #     del cookies["final_page"]
+        #     cookies.save()
+        #     st.rerun()
 
     # Video eval page
     else:
@@ -106,6 +95,13 @@ if __name__ == "__main__":
         st.caption(f"User-{user_id:03d} - Index-{current_index:03d})")
 
         eval = get_sample_from_pool(user_id)
+        eval = None
+
+        # If user completed all their evaluations/pool is empty
+        if eval is None:
+            cookies["final_page"] = True
+            cookies.save()
+            st.rerun()
 
         prompt_id, criteria_id, combo_id, turn_id = eval
 

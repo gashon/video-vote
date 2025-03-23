@@ -94,17 +94,26 @@ def get_sample_from_pool(user_id):
         cutoff_time = datetime.datetime.now() - datetime.timedelta(minutes=30)
         cutoff_time_str = cutoff_time.strftime("%Y-%m-%d %H:%M:%S")
 
-        # Find an available evaluation
+        # Find an available evaluation (not assigned to this user before)
         c.execute(
             """
-            SELECT * FROM evaluation_pool
+            SELECT * FROM evaluation_pool ep
             WHERE 
-                status = 'available' OR 
-                (status = 'in_progress' AND assigned_at < ?)
+                (ep.status = 'available' OR 
+                (ep.status = 'in_progress' AND ep.assigned_at < ?))
+                AND NOT EXISTS (
+                    SELECT 1 FROM evaluations e
+                    JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
+                    WHERE 
+                        e.user_id = ? 
+                        AND seen_ep.prompt_id = ep.prompt_id
+                        AND seen_ep.criteria_id = ep.criteria_id
+                        AND seen_ep.combo_id = ep.combo_id
+                )
             ORDER BY RANDOM()
             LIMIT 1
             """,
-            (cutoff_time_str,),
+            (cutoff_time_str, user_id),
         )
 
         row = c.fetchone()
