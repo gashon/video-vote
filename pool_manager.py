@@ -119,6 +119,29 @@ def get_sample_from_pool(user_id):
         row = c.fetchone()
 
         if not row:
+            # if the user completed all of the allocated evaluations, still select some at random
+            c.execute(
+                """
+                SELECT * FROM evaluation_pool ep
+                WHERE 
+                    ep.user_id != ?
+                    AND NOT EXISTS (
+                            SELECT 1 FROM evaluations e
+                            JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
+                            WHERE 
+                                e.user_id = ? 
+                                AND seen_ep.prompt_id = ep.prompt_id
+                                AND seen_ep.criteria_id = ep.criteria_id
+                                AND seen_ep.combo_id = ep.combo_id
+                        )
+                ORDER BY RANDOM()
+                LIMIT 1
+                """,
+                (user_id),
+            )
+
+            row = c.fetchone()
+
             conn.close()
             return None
 
