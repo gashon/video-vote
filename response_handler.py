@@ -6,6 +6,7 @@ import time
 import streamlit as st
 
 from config import NUM_COMBINATIONS, NUM_CRITERIA, NUM_PROMPTS, NUM_TURNS
+from pool_manager import get_db_lock
 
 SAVE_PATH = "eval"
 
@@ -98,96 +99,97 @@ def save_response(
     clicked_video_count = st.session_state.clicked_video_count
     clicked_video_unrepeated_count = len(st.session_state.clicked_video_ids)
 
-    conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
-    c = conn.cursor()
+    with get_db_lock():
+        conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
+        c = conn.cursor()
 
-    try:
-        # Begin transaction
-        conn.execute("BEGIN TRANSACTION")
+        try:
+            # Begin transaction
+            conn.execute("BEGIN TRANSACTION")
 
-        print(
-            "SAVING RESPONSE",
-            f"user_id={user_id}",
-            f"current_index={current_index}",
-            f"prompt_id={prompt_id}",
-            f"criteria_id={criteria_id}",
-            f"turn_id={turn_id}",
-            f"combo_id={combo_id}",
-            f"left_model={left_model}",
-            f"right_model={right_model}",
-            f"rating={rating}",
-            f"review_duration={review_duration}",
-            f"clicked_video_count={clicked_video_count}",
-            f"clicked_video_unrepeated_count={clicked_video_unrepeated_count}",
-            f"time={time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}",
-            sep="\n",
-        )
-
-        # First, find the evaluation_pool ID that matches our criteria
-        c.execute(
-            """
-            SELECT id FROM evaluation_pool
-            WHERE prompt_id = ? AND criteria_id = ? AND turn_id = ? AND combo_id = ?
-            """,
-            (prompt_id, criteria_id, turn_id, combo_id),
-        )
-
-        pool_id_row = c.fetchone()
-        if not pool_id_row:
             print(
-                f"Warning: Could not find matching evaluation_pool entry for prompt_id={prompt_id}, criteria_id={criteria_id}, turn_id={turn_id}, combo_id={combo_id}"
+                "SAVING RESPONSE",
+                f"user_id={user_id}",
+                f"current_index={current_index}",
+                f"prompt_id={prompt_id}",
+                f"criteria_id={criteria_id}",
+                f"turn_id={turn_id}",
+                f"combo_id={combo_id}",
+                f"left_model={left_model}",
+                f"right_model={right_model}",
+                f"rating={rating}",
+                f"review_duration={review_duration}",
+                f"clicked_video_count={clicked_video_count}",
+                f"clicked_video_unrepeated_count={clicked_video_unrepeated_count}",
+                f"time={time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))}",
+                sep="\n",
             )
-            pool_id = None
-        else:
-            pool_id = pool_id_row[0]
 
-            # Update the status in evaluation_pool to completed
+            # First, find the evaluation_pool ID that matches our criteria
             c.execute(
                 """
-                UPDATE evaluation_pool
-                SET status = 'completed'
-                WHERE id = ?
+                SELECT id FROM evaluation_pool
+                WHERE prompt_id = ? AND criteria_id = ? AND turn_id = ? AND combo_id = ?
                 """,
-                (pool_id,),
+                (prompt_id, criteria_id, turn_id, combo_id),
             )
 
-        # Insert or update the evaluation record
-        c.execute(
-            """
-            INSERT INTO evaluations (
-                user_id, 
-                current_index, 
-                evaluation_pool_id,
-                left_model, 
-                right_model, 
-                rating, 
-                review_duration, 
-                clicked_video_count, 
-                clicked_video_unrepeated_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                user_id,
-                current_index,
-                pool_id,
-                left_model,
-                right_model,
-                rating,
-                review_duration,
-                clicked_video_count,
-                clicked_video_unrepeated_count,
-            ),
-        )
+            pool_id_row = c.fetchone()
+            if not pool_id_row:
+                print(
+                    f"Warning: Could not find matching evaluation_pool entry for prompt_id={prompt_id}, criteria_id={criteria_id}, turn_id={turn_id}, combo_id={combo_id}"
+                )
+                pool_id = None
+            else:
+                pool_id = pool_id_row[0]
 
-        # Commit transaction
-        conn.commit()
+                # Update the status in evaluation_pool to completed
+                c.execute(
+                    """
+                    UPDATE evaluation_pool
+                    SET status = 'completed'
+                    WHERE id = ?
+                    """,
+                    (pool_id,),
+                )
 
-    except Exception as e:
-        conn.rollback()
-        print(f"Error in save_response: {e}")
+            # Insert or update the evaluation record
+            c.execute(
+                """
+                INSERT INTO evaluations (
+                    user_id, 
+                    current_index, 
+                    evaluation_pool_id,
+                    left_model, 
+                    right_model, 
+                    rating, 
+                    review_duration, 
+                    clicked_video_count, 
+                    clicked_video_unrepeated_count
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    current_index,
+                    pool_id,
+                    left_model,
+                    right_model,
+                    rating,
+                    review_duration,
+                    clicked_video_count,
+                    clicked_video_unrepeated_count,
+                ),
+            )
 
-    finally:
-        conn.close()
+            # Commit transaction
+            conn.commit()
+
+        except Exception as e:
+            conn.rollback()
+            print(f"Error in save_response: {e}")
+
+        finally:
+            conn.close()
 
 
 def get_new_user_id():
