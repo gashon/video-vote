@@ -71,6 +71,7 @@ def get_sample_from_pool(user_id):
             WHERE 
                 user_id = ? AND 
                 status = 'in_progress'
+            ORDER BY assigned_at DESC
             LIMIT 1
             """,
             (user_id,),
