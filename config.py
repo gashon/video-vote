@@ -4,11 +4,11 @@ VIDEO_LENGTH = 63
 VIDEO_ROOT = f"video/{VIDEO_LENGTH}sec"
 
 NUM_PROMPTS = 100
-NUM_CRITERIA = 5
+NUM_CRITERIA = 4
 NUM_TURNS = 1
 NUM_COMBINATIONS = 6
 TOTAL_EVALUATIONS = NUM_PROMPTS * NUM_CRITERIA * NUM_COMBINATIONS * NUM_TURNS  # 22500
-NUM_EVALUATORS = 150
+NUM_EVALUATORS = 120
 
 MIN_REVIEW_DURATION_IN_SEC = VIDEO_LENGTH
 
@@ -41,11 +41,6 @@ CRITERIA = {
         "Scene Consistency",
         "Do characters and settings stay the same across scenes? It checks if characters, objects, and locations remain consistent, even if there's a gap between scenes.",
         "If Jerry has a red scarf in one scene but suddenly doesn't have it in the next scene without explanation, the video has poor scene consistency.",
-    ],
-    4: [
-        "Character Emotions",
-        "Does the video clearly show the emotions of characters through their facial expressions and body language? It checks if characters display feelings that match the described actions or situations.",
-        "If Jerry is supposed to look scared but instead seems calm or happy, that's a violation.",
     ],
 }
 
