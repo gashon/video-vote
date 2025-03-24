@@ -95,7 +95,6 @@ if __name__ == "__main__":
         st.caption(f"User-{user_id:03d} - Index-{current_index:03d})")
 
         eval = get_sample_from_pool(user_id)
-        eval = None
 
         # If user completed all their evaluations/pool is empty
         if eval is None:
@@ -123,7 +122,7 @@ if __name__ == "__main__":
         ):
             with warning_placeholder:
                 st.warning(
-                    f"WARNING: In order to get the submission code, please spend at least {MIN_REVIEW_DURATION_IN_SEC} seconds accurately reviewing."
+                    f"WARNING ({cookies['reviewed_before_duration_count']}): In order to get the submission code, please spend at least {MIN_REVIEW_DURATION_IN_SEC} seconds accurately reviewing."
                 )
 
         with button_placeholder:
@@ -132,6 +131,17 @@ if __name__ == "__main__":
                     time.time() - st.session_state.current_index_start_time
                 )
                 if review_duration < MIN_REVIEW_DURATION_IN_SEC:
+                    if "reviewed_before_duration_count" not in cookies:
+                        cookies["reviewed_before_duration_count"] = "0"
+
+                    if (
+                        "reviewed_before_duration" not in cookies
+                        or cookies["reviewed_before_duration"] != "true"
+                    ):
+                        cookies["reviewed_before_duration_count"] = (
+                            int(cookies["reviewed_before_duration_count"]) + 1
+                        )
+
                     cookies["reviewed_before_duration"] = "true"
                 else:
                     cookies["reviewed_before_duration"] = "false"

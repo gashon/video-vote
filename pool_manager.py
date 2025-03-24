@@ -118,8 +118,8 @@ def get_sample_from_pool(user_id):
 
         row = c.fetchone()
 
-        assign_a_completed_eval = (
-            not row
+        assign_a_completed_eval = bool(
+            row is None
         )  # if no available evaluations, assign a completed one
         if assign_a_completed_eval:
             # if the user completed all of the allocated evaluations, still select some at random
@@ -127,7 +127,7 @@ def get_sample_from_pool(user_id):
                 """
                 SELECT * FROM evaluation_pool ep
                 WHERE 
-                    ep.user_id != ?
+                    (ep.user_id is NULL or ep.user_id != ?)
                     AND NOT EXISTS (
                             SELECT 1 FROM evaluations e
                             JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
@@ -140,7 +140,7 @@ def get_sample_from_pool(user_id):
                 ORDER BY RANDOM()
                 LIMIT 1
                 """,
-                (user_id),
+                (user_id, user_id),
             )
 
             row = c.fetchone()
