@@ -1,28 +1,26 @@
 from itertools import combinations
 
-VIDEO_LENGTH = 18
+VIDEO_LENGTH = 63
 VIDEO_ROOT = f"video/{VIDEO_LENGTH}sec"
 
 NUM_PROMPTS = 100
 NUM_CRITERIA = 5
 NUM_TURNS = 1
-NUM_COMBINATIONS = 15
+NUM_COMBINATIONS = 6
 TOTAL_EVALUATIONS = NUM_PROMPTS * NUM_CRITERIA * NUM_COMBINATIONS * NUM_TURNS  # 22500
 NUM_EVALUATORS = 150
 
-MIN_REVIEW_DURATION_IN_SEC = 60
+MIN_REVIEW_DURATION_IN_SEC = VIDEO_LENGTH
 
 DEBUG_MODE = False
 
-
 MODEL_LIST = [
-    "attention",
     "deltanet",
     "mamba",
     "sliding-window",
-    "ttt-linear",
     "ttt-mlp",
 ]
+
 CRITERIA = {
     0: [
         "Text Following",

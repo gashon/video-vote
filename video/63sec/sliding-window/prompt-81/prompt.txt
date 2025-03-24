@@ -1,0 +1,41 @@
+A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table.
+
+A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table. Tom, the blue-gray cat, sits in the armchair with a book open in his paws, his attention focused on the pages before him.
+
+A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table. Tom, the blue-gray cat, continues reading the book, occasionally turning a page with his paw. His tail rests calmly beside him on the armchair.<end_scene>
+
+<start_scene>The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors.
+
+The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, cautiously emerges from a small crack near the end of the windowsill, his whiskers twitching as he surveys his surroundings.
+
+The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, takes a few slow steps along the windowsill, walking on his hind legs with his paws clasped together in front of him.<end_scene>
+
+<start_scene>A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table. Tom, the blue-gray cat, remains seated in the armchair with his book, totally absorbed in his reading and unaware of any movement by the window.
+
+A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table. Tom, the blue-gray cat, adjusts his position slightly in the chair for more comfort, still focused on the book in his paws. His eyes move slowly across the page as he reads.<end_scene>
+
+<start_scene>The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, walks slowly from right to left across the windowsill, his small paws moving in a deliberate pace.
+
+The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, pauses halfway along the windowsill and turns to look into the room, his ears perked up attentively. His tail curls slightly behind him as he stands still.
+
+The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, continues his walk, now moving from left to right along the windowsill. His movements remain slow and quiet as he proceeds in the opposite direction.<end_scene>
+
+<start_scene>A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table. Tom, the blue-gray cat, turns a page in his book with one paw while his other paw adjusts his position in the chair. His expression remains peaceful and content.
+
+A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table. Tom, the blue-gray cat, stretches one arm above his head while still holding the book with his other paw. His back arches slightly during this brief stretch before he settles back into the chair.<end_scene>
+
+<start_scene>The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, sits down on the windowsill, letting his small legs dangle over the edge facing the room. His paws rest on the surface of the windowsill on either side of him.
+
+The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, stands up from his seated position and resumes walking, now moving toward the right side of the windowsill. His tail sways gently behind him as he walks.<end_scene>
+
+<start_scene>A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table. Tom, the blue-gray cat, places a paw on his mouth as he yawns widely, his book still held in his other paw. His eyes close briefly during the yawn.
+
+A cozy living room with warm-colored walls and wooden flooring. A large window with drawn curtains lets in soft daylight, illuminating the simple furniture arrangement consisting of a comfortable armchair and a small side table. Tom, the blue-gray cat, blinks his eyes after the yawn and returns his attention to the book. His tail flicks once at his side before settling back down on the armchair.<end_scene>
+
+<start_scene>The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, reaches the far right end of the windowsill and turns around to face the opposite direction. His small head turns first, followed by his body as he pivots on his feet.
+
+The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, begins walking back toward the left side of the windowsill, maintaining his slow and careful pace. His eyes occasionally glance toward the interior of the room.
+
+The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, continues his leisurely stroll along the windowsill, now reaching the middle section. His whiskers move slightly as he sniffs the air around him.
+
+The wide windowsill bathed in sunlight stretches across the frame. The glass panes reveal a view of green trees and blue sky outside, while the interior shows part of the living room wall painted in warm colors. Jerry, the brown mouse, approaches the crack at the left end of the windowsill, slowing his steps as he nears this small opening. His body begins to turn toward the crack as he prepares to enter it.
