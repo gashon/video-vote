@@ -208,9 +208,7 @@ def get_new_user_id():
 def fetch_all_responses():
     conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
     c = conn.cursor()
-    c.execute(
-        """SELECT * FROM evaluations GROUP BY user_id ORDER BY evaluation_pool_id"""
-    )
+    c.execute("""SELECT * FROM evaluations ORDER BY evaluation_pool_id ASC""")
     rows = c.fetchall()
     column_names = [desc[0] for desc in c.description]
 
