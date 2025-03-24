@@ -122,7 +122,7 @@ if __name__ == "__main__":
         ):
             with warning_placeholder:
                 st.warning(
-                    f"WARNING ({cookies['reviewed_before_duration_count']}): In order to get the submission code, please spend at least {MIN_REVIEW_DURATION_IN_SEC} seconds accurately reviewing."
+                    f"WARNING ({cookies['reviewed_before_duration_count']}): In order to get the submission code, please spend enough time accurately reviewing both videos."
                 )
 
         with button_placeholder:
