@@ -1,3 +1,4 @@
+import datetime
 import os
 import os.path as osp
 import sqlite3
@@ -200,14 +201,19 @@ def get_new_user_id():
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
+    cutoff_time = datetime.datetime.now() - datetime.timedelta(minutes=30)
+    cutoff_time_str = cutoff_time.strftime("%Y-%m-%d %H:%M:%S")
+
     # Check if all evaluations for criteria 3 and 4 are completed
     c.execute(
         """
         SELECT COUNT(*) as remaining_count
         FROM evaluation_pool
         WHERE criteria_id IN (0, 3)
-        AND status != 'completed'
-    """
+        AND status != 'completed' OR
+        (status = 'in_progress' AND assigned_at < ?)
+    """,
+        (cutoff_time_str),
     )
 
     result = c.fetchone()
