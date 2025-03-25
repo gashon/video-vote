@@ -1,15 +1,18 @@
+import datetime
 import io
 import json
 import os.path as osp
 import random
+import sqlite3
 
 import streamlit as st
 from fpdf import FPDF
 
 from batch_manager import get_eval_batch_size
-from config import (CRITERIA, DEBUG_MODE, MODEL_LIST, VIDEO_LENGTH, VIDEO_ROOT,
-                    get_combo)
+from config import CRITERIA, DEBUG_MODE, MODEL_LIST, VIDEO_LENGTH, VIDEO_ROOT, get_combo
 from response_handler import fetch_all_responses
+
+SAVE_PATH = "eval"
 
 
 def get_rankings(sorted_videos):
@@ -208,19 +211,25 @@ def admin_page():
         st.success("Access granted!")
 
         # Section for deleting users and their evaluations
-        st.header("Delete User Data")
-        user_ids_input = st.text_input("Enter comma-separated user IDs to delete (e.g., 1,2,3):")
+        st.header("Delete User")
+        user_ids_input = st.text_input(
+            "Enter comma-separated user IDs to delete (e.g., 1,2,3):"
+        )
         delete_button = st.button("Delete Selected Users")
-        
+
         if delete_button and user_ids_input:
             try:
                 # Parse the comma-separated user IDs
-                user_ids = [int(id.strip()) for id in user_ids_input.split(',') if id.strip()]
-                
+                user_ids = [
+                    int(id.strip()) for id in user_ids_input.split(",") if id.strip()
+                ]
+
                 if user_ids:
                     # Call the function to mark users and their evaluations as deleted
                     deleted_count = delete_users_and_evaluations(user_ids)
-                    st.success(f"Successfully marked {deleted_count} users and their evaluations as deleted.")
+                    st.success(
+                        f"Successfully marked {len(user_ids)} user and {deleted_count} evaluations as deleted."
+                    )
                 else:
                     st.warning("No valid user IDs provided.")
             except ValueError:
@@ -269,29 +278,30 @@ def admin_page():
         if password:
             st.error("Access denied! Incorrect password.")
 
+
 def delete_users_and_evaluations(user_ids):
     """
     Marks users and their evaluations as deleted by setting the deleted_at timestamp
     and returns evaluation_pool entries to available status.
-    
+
     Args:
         user_ids: List of user IDs to mark as deleted
-        
+
     Returns:
         int: Number of users successfully marked as deleted
     """
     conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
     c = conn.cursor()
-    
+
     try:
         # Start a transaction
         conn.execute("BEGIN TRANSACTION")
-        
+
         # Get the current timestamp
         current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+
         # Update users table - mark users as deleted
-        placeholders = ','.join(['?'] * len(user_ids))
+        placeholders = ",".join(["?"] * len(user_ids))
         c.execute(
             f"""
             UPDATE users
@@ -299,9 +309,9 @@ def delete_users_and_evaluations(user_ids):
             WHERE id IN ({placeholders})
             AND deleted_at IS NULL
             """,
-            (current_timestamp, *user_ids)
+            (current_timestamp, *user_ids),
         )
-        
+
         # Get evaluation_pool_ids for the users' evaluations
         c.execute(
             f"""
@@ -310,10 +320,10 @@ def delete_users_and_evaluations(user_ids):
             WHERE user_id IN ({placeholders})
             AND deleted_at IS NULL
             """,
-            user_ids
+            user_ids,
         )
         eval_pool_ids = [row[0] for row in c.fetchall()]
-        
+
         # Mark evaluations as deleted
         c.execute(
             f"""
@@ -322,12 +332,12 @@ def delete_users_and_evaluations(user_ids):
             WHERE user_id IN ({placeholders})
             AND deleted_at IS NULL
             """,
-            (current_timestamp, *user_ids)
+            (current_timestamp, *user_ids),
         )
-        
+
         # Reset the status of evaluation_pool entries if there are any
         if eval_pool_ids:
-            pool_placeholders = ','.join(['?'] * len(eval_pool_ids))
+            pool_placeholders = ",".join(["?"] * len(eval_pool_ids))
             c.execute(
                 f"""
                 UPDATE evaluation_pool
@@ -335,15 +345,15 @@ def delete_users_and_evaluations(user_ids):
                 WHERE id IN ({pool_placeholders})
                 AND status = 'completed'
                 """,
-                eval_pool_ids
+                eval_pool_ids,
             )
-        
+
         # Commit the transaction
         conn.commit()
-        
+
         # Return the number of users affected
         return c.rowcount
-        
+
     except Exception as e:
         # Roll back in case of error
         conn.rollback()
