@@ -48,6 +48,7 @@ def create_db():
                 clicked_video_count INTEGER, 
                 clicked_video_unrepeated_count INTEGER, 
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                deleted_at DATETIME DEFAULT NULL,
                 FOREIGN KEY (evaluation_pool_id) REFERENCES evaluation_pool(id),
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )"""
@@ -56,6 +57,8 @@ def create_db():
     c.execute(
         """CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            assignment_type INTEGER NOT NULL, -- 1 for criteria_id 1 and 2, 2 for criteria_id 0 and 3
+            deleted_at DATETIME DEFAULT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )"""
     )
@@ -194,15 +197,40 @@ def save_response(
 
 def get_new_user_id():
     conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("INSERT INTO users DEFAULT VALUES")
+
+    # Check if all evaluations for criteria 3 and 4 are completed
+    c.execute(
+        """
+        SELECT COUNT(*) as remaining_count
+        FROM evaluation_pool
+        WHERE criteria_id IN (0, 3)
+        AND status != 'completed'
+    """
+    )
+
+    result = c.fetchone()
+    remaining_evals = result["remaining_count"]
+
+    # Determine which assignment type to assign
+    assignment_type = 2 if remaining_evals > 0 else 1
+
+    # Insert new user with the determined assignment type
+    c.execute(
+        """
+        INSERT INTO users (assignment_type) 
+        VALUES (?)
+    """,
+        (assignment_type,),
+    )
 
     # Retrieve the auto-generated user id
     new_user_id = c.lastrowid
     conn.commit()
     conn.close()
 
-    return new_user_id - 1  # Minus 1 for indexing into batches
+    return new_user_id
 
 
 def fetch_all_responses():

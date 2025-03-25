@@ -5,7 +5,7 @@ from streamlit_cookies_manager import CookieManager
 
 from batch_manager import create_batches
 from config import DEBUG_MODE, MIN_REVIEW_DURATION_IN_SEC, get_eval_batch_size
-from pool_manager import all_evaluations_assigned, get_sample_from_pool
+from pool_manager import get_sample_from_pool
 from response_handler import (
     create_db,
     get_new_user_id,
@@ -51,12 +51,6 @@ if __name__ == "__main__":
     if st.query_params.get("admin", "") == "true":
         admin_page()
 
-        st.stop()
-
-    if all_evaluations_assigned():
-        st.warning(
-            "All evaluations have been assigned. Thank you for your participation!"
-        )
         st.stop()
 
     # Start Page
@@ -130,33 +124,33 @@ if __name__ == "__main__":
                 review_duration = int(
                     time.time() - st.session_state.current_index_start_time
                 )
-                if review_duration < MIN_REVIEW_DURATION_IN_SEC:
-                    if "reviewed_before_duration_count" not in cookies:
-                        cookies["reviewed_before_duration_count"] = "0"
-
-                    if (
-                        "reviewed_before_duration" not in cookies
-                        or cookies["reviewed_before_duration"] != "true"
-                    ):
-                        cookies["reviewed_before_duration_count"] = (
-                            int(cookies["reviewed_before_duration_count"]) + 1
-                        )
-
-                    cookies["reviewed_before_duration"] = "true"
-                else:
-                    cookies["reviewed_before_duration"] = "false"
-                    save_response(
-                        current_index=current_index,
-                        prompt_id=prompt_id,
-                        criteria_id=criteria_id,
-                        turn_id=turn_id,
-                        combo_id=combo_id,
-                        left_model=left_model,
-                        right_model=right_model,
-                        rating=rating,
-                        user_id=user_id,
-                        review_duration=review_duration,
-                    )
+                # if review_duration < MIN_REVIEW_DURATION_IN_SEC:
+                #     if "reviewed_before_duration_count" not in cookies:
+                #         cookies["reviewed_before_duration_count"] = "0"
+                #
+                #     if (
+                #         "reviewed_before_duration" not in cookies
+                #         or cookies["reviewed_before_duration"] != "true"
+                #     ):
+                #         cookies["reviewed_before_duration_count"] = (
+                #             int(cookies["reviewed_before_duration_count"]) + 1
+                #         )
+                #
+                #     cookies["reviewed_before_duration"] = "true"
+                # else:
+                #     cookies["reviewed_before_duration"] = "false"
+                save_response(
+                    current_index=current_index,
+                    prompt_id=prompt_id,
+                    criteria_id=criteria_id,
+                    turn_id=turn_id,
+                    combo_id=combo_id,
+                    left_model=left_model,
+                    right_model=right_model,
+                    rating=rating,
+                    user_id=user_id,
+                    review_duration=review_duration,
+                )
 
                 saved_responses_count = get_user_eval_count(user_id)
                 expected_responses = get_eval_batch_size()
