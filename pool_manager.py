@@ -21,6 +21,7 @@ def get_sample_from_pool(user_id):
        b. Has status='in_progress' but was assigned over 30 minutes ago
     3. Mark it as in_progress for the current user
     4. Only fetch samples that match the user's assignment_type criteria
+    5. Prioritize giving users model combinations they haven't seen before
 
     Args:
         user_id: The ID of the user requesting the evaluation
@@ -93,28 +94,76 @@ def get_sample_from_pool(user_id):
             cutoff_time = datetime.datetime.now() - datetime.timedelta(minutes=30)
             cutoff_time_str = cutoff_time.strftime("%Y-%m-%d %H:%M:%S")
 
+            # Get the models this user has already seen
+            c.execute(
+                """
+                SELECT DISTINCT e.left_model, e.right_model
+                FROM evaluations e
+                WHERE e.user_id = ?
+                """,
+                (user_id,),
+            )
+
+            seen_models = c.fetchall()
+            seen_left_models = set()
+            seen_right_models = set()
+
+            for model_pair in seen_models:
+                if model_pair["left_model"]:
+                    seen_left_models.add(model_pair["left_model"])
+                if model_pair["right_model"]:
+                    seen_right_models.add(model_pair["right_model"])
+
             # Find an available evaluation (not assigned to this user before)
             # and matching the user's assigned criteria IDs
+            # Now with prioritization for unseen models
             c.execute(
                 f"""
-                SELECT * FROM evaluation_pool ep
-                WHERE 
-                    (ep.status = 'available' OR 
-                    (ep.status = 'in_progress' AND ep.assigned_at < ?))
-                    AND ep.criteria_id IN ({criteria_ids_placeholders})
-                    AND NOT EXISTS (
-                        SELECT 1 FROM evaluations e
-                        JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
-                        WHERE 
-                            e.user_id = ? 
-                            AND seen_ep.prompt_id = ep.prompt_id
-                            AND seen_ep.criteria_id = ep.criteria_id
-                            AND seen_ep.combo_id = ep.combo_id
-                    )
-                ORDER BY RANDOM()
+                WITH candidate_evals AS (
+                    SELECT 
+                        ep.*,
+                        e_left.left_model,
+                        e_right.right_model,
+                        CASE
+                            WHEN e_left.left_model IS NULL THEN 1
+                            ELSE 0
+                        END as unseen_left,
+                        CASE
+                            WHEN e_right.right_model IS NULL THEN 1
+                            ELSE 0
+                        END as unseen_right
+                    FROM evaluation_pool ep
+                    LEFT JOIN (
+                        SELECT DISTINCT ep.combo_id, e.left_model
+                        FROM evaluations e
+                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                        WHERE e.user_id = ?
+                    ) e_left ON ep.combo_id = e_left.combo_id
+                    LEFT JOIN (
+                        SELECT DISTINCT ep.combo_id, e.right_model
+                        FROM evaluations e
+                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                        WHERE e.user_id = ?
+                    ) e_right ON ep.combo_id = e_right.combo_id
+                    WHERE 
+                        (ep.status = 'available' OR 
+                        (ep.status = 'in_progress' AND ep.assigned_at < ?))
+                        AND ep.criteria_id IN ({criteria_ids_placeholders})
+                        AND NOT EXISTS (
+                            SELECT 1 FROM evaluations e
+                            JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
+                            WHERE 
+                                e.user_id = ? 
+                                AND seen_ep.prompt_id = ep.prompt_id
+                                AND seen_ep.criteria_id = ep.criteria_id
+                                AND seen_ep.combo_id = ep.combo_id
+                        )
+                )
+                SELECT * FROM candidate_evals
+                ORDER BY (unseen_left + unseen_right) DESC, RANDOM()
                 LIMIT 1
                 """,
-                (cutoff_time_str, *criteria_ids, user_id),
+                (user_id, user_id, cutoff_time_str, *criteria_ids, user_id),
             )
 
             row = c.fetchone()
@@ -125,13 +174,39 @@ def get_sample_from_pool(user_id):
             if assign_a_completed_eval:
                 # if the user completed all of the allocated evaluations, still select some at random
                 # but still respect the assigned criteria IDs
+                # and prioritize unseen models
                 c.execute(
                     f"""
-                    SELECT * FROM evaluation_pool ep
-                    WHERE 
-                        (ep.user_id is NULL or ep.user_id != ?)
-                        AND ep.criteria_id IN ({criteria_ids_placeholders})
-                        AND NOT EXISTS (
+                    WITH candidate_evals AS (
+                        SELECT 
+                            ep.*,
+                            e_left.left_model,
+                            e_right.right_model,
+                            CASE
+                                WHEN e_left.left_model IS NULL THEN 1
+                                ELSE 0
+                            END as unseen_left,
+                            CASE
+                                WHEN e_right.right_model IS NULL THEN 1
+                                ELSE 0
+                            END as unseen_right
+                        FROM evaluation_pool ep
+                        LEFT JOIN (
+                            SELECT DISTINCT ep.combo_id, e.left_model
+                            FROM evaluations e
+                            JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                            WHERE e.user_id = ?
+                        ) e_left ON ep.combo_id = e_left.combo_id
+                        LEFT JOIN (
+                            SELECT DISTINCT ep.combo_id, e.right_model
+                            FROM evaluations e
+                            JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                            WHERE e.user_id = ?
+                        ) e_right ON ep.combo_id = e_right.combo_id
+                        WHERE 
+                            (ep.user_id IS NULL OR ep.user_id != ?)
+                            AND ep.criteria_id IN ({criteria_ids_placeholders})
+                            AND NOT EXISTS (
                                 SELECT 1 FROM evaluations e
                                 JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
                                 WHERE 
@@ -140,10 +215,12 @@ def get_sample_from_pool(user_id):
                                     AND seen_ep.criteria_id = ep.criteria_id
                                     AND seen_ep.combo_id = ep.combo_id
                             )
-                    ORDER BY RANDOM()
+                    )
+                    SELECT * FROM candidate_evals
+                    ORDER BY (unseen_left + unseen_right) DESC, RANDOM()
                     LIMIT 1
                     """,
-                    (user_id, *criteria_ids, user_id),
+                    (user_id, user_id, user_id, *criteria_ids, user_id),
                 )
 
                 row = c.fetchone()
