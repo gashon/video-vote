@@ -162,6 +162,10 @@ def show_videos_page(eval_id):
     left_model = combo[0]
     right_model = combo[1]
 
+    st.caption(
+        f"Please refresh the page or contact kdalal@berkeley.edu if there is an issue with the video player."
+    )
+
     def get_model_path(model_name):
         return osp.join(VIDEO_ROOT, model_name, f"prompt-{prompt_id}/000000.mp4")
 
