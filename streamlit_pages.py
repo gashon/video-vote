@@ -39,7 +39,7 @@ def start_page():
                 * You will make **{get_eval_batch_size()} comparisons** by watching two {VIDEO_LENGTH}-second videos generated from the same prompt.
                 * You will select the video that better matches the criterion.
 
-                The estimated time for this task is 1 hour. Criterion will be one of the following five options:"""
+                The estimated time for this task is 1 hour. Criterion will be one of the following four options:"""
     )
 
     for i, criterion in CRITERIA.items():
@@ -188,6 +188,9 @@ def show_videos_page(eval_id):
         f"Which video is better?",
         options=["left", "tie", "right"],
         key=f"vid-{prompt_id}-{criteria_id}-{turn_id}-{combo_id}",
+    )
+    st.warning(
+        f"Please watch both videos before making your selection. Our software can detect if you have not watched both videos."
     )
     if rating is None:
 
