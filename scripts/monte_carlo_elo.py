@@ -27,12 +27,6 @@ def fetch_completed_responses(db_path):
         FROM evaluations e
         JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
         WHERE ep.status = 'completed'
-        AND e.user_id IN (
-            SELECT user_id
-            FROM evaluations
-            GROUP BY user_id
-            HAVING COUNT(*) = 20
-        )
         """
     )
     rows = c.fetchall()

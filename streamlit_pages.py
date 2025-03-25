@@ -343,7 +343,7 @@ def delete_users_and_evaluations(user_ids):
                 UPDATE evaluation_pool
                 SET status = 'available', user_id = NULL
                 WHERE id IN ({pool_placeholders})
-                AND status = 'completed'
+                AND (status = 'completed' OR status='in_progress')
                 """,
                 eval_pool_ids,
             )
