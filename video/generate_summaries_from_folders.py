@@ -5,7 +5,7 @@ import time
 
 import requests
 
-SYSTEM_PROMPT = """Generate an extremely detailed 4-5 sentence summary of the following video prompt. 
+SYSTEM_PROMPT = """Generate an extremely detailed 2-3 sentence summary of the following video prompt. 
 
 Capture all intricate and minor details visible in the scene, including:
 - Subtle character actions (facial expressions, hand gestures, sticking out tongues)
@@ -136,10 +136,12 @@ if __name__ == "__main__":
     API_KEY = os.environ["ANTHROPIC_API_KEY"]
 
     # Base directory prefix
-    BASE_PREFIX = "63sec"
+    BASE_PREFIX = "18sec"
 
     # All directories to process
     DIRECTORIES = [
+        "attn",
+        "ttt-linear",
         "sliding-window",
         "ttt-mlp",
         "deltanet",
