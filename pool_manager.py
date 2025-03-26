@@ -21,7 +21,7 @@ def get_sample_from_pool(user_id):
        b. Has status='in_progress' but was assigned over 30 minutes ago
     3. Mark it as in_progress for the current user
     4. Only fetch samples that match the user's assignment_type criteria
-    5. Prioritize giving users model combinations they haven't seen before
+    5. Preference samples with models the user hasn't seen before
 
     Args:
         user_id: The ID of the user requesting the evaluation
@@ -94,73 +94,60 @@ def get_sample_from_pool(user_id):
             cutoff_time = datetime.datetime.now() - datetime.timedelta(minutes=30)
             cutoff_time_str = cutoff_time.strftime("%Y-%m-%d %H:%M:%S")
 
-            # Get the models this user has already seen
-            c.execute(
-                """
-                SELECT DISTINCT e.left_model, e.right_model
-                FROM evaluations e
-                WHERE e.user_id = ?
-                """,
-                (user_id,),
-            )
-
-            seen_models = c.fetchall()
-            seen_left_models = set()
-            seen_right_models = set()
-
-            for model_pair in seen_models:
-                if model_pair["left_model"]:
-                    seen_left_models.add(model_pair["left_model"])
-                if model_pair["right_model"]:
-                    seen_right_models.add(model_pair["right_model"])
-
-            # Find an available evaluation (not assigned to this user before)
-            # and matching the user's assigned criteria IDs
-            # Now with prioritization for unseen models
+            # Find available evaluations and prioritize ones with models the user hasn't seen
             c.execute(
                 f"""
-                WITH candidate_evals AS (
+                WITH user_seen_models AS (
+                    -- Count how many times user has seen each model (on either left or right)
                     SELECT 
-                        ep.*,
-                        e_left.left_model,
-                        e_right.right_model,
-                        CASE
-                            WHEN e_left.left_model IS NULL THEN 1
-                            ELSE 0
-                        END as unseen_left,
-                        CASE
-                            WHEN e_right.right_model IS NULL THEN 1
-                            ELSE 0
-                        END as unseen_right
-                    FROM evaluation_pool ep
-                    LEFT JOIN (
-                        SELECT DISTINCT ep.combo_id, e.left_model
-                        FROM evaluations e
-                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-                        WHERE e.user_id = ?
-                    ) e_left ON ep.combo_id = e_left.combo_id
-                    LEFT JOIN (
-                        SELECT DISTINCT ep.combo_id, e.right_model
-                        FROM evaluations e
-                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-                        WHERE e.user_id = ?
-                    ) e_right ON ep.combo_id = e_right.combo_id
-                    WHERE 
-                        (ep.status = 'available' OR 
-                        (ep.status = 'in_progress' AND ep.assigned_at < ?))
-                        AND ep.criteria_id IN ({criteria_ids_placeholders})
-                        AND NOT EXISTS (
-                            SELECT 1 FROM evaluations e
-                            JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
-                            WHERE 
-                                e.user_id = ? 
-                                AND seen_ep.prompt_id = ep.prompt_id
-                                AND seen_ep.criteria_id = ep.criteria_id
-                                AND seen_ep.combo_id = ep.combo_id
-                        )
+                        mc.left_model AS model_name,
+                        COUNT(*) AS seen_count
+                    FROM evaluations e
+                    JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                    JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                    WHERE e.user_id = ?
+                    GROUP BY mc.left_model
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        mc.right_model AS model_name,
+                        COUNT(*) AS seen_count
+                    FROM evaluations e
+                    JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                    JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                    WHERE e.user_id = ?
+                    GROUP BY mc.right_model
+                ),
+                
+                combo_exposure_score AS (
+                    -- Calculate an exposure score for each combo (lower is better - unseen models)
+                    SELECT 
+                        mc.combo_id,
+                        COALESCE(SUM(usm_left.seen_count), 0) + COALESCE(SUM(usm_right.seen_count), 0) AS total_exposure
+                    FROM model_combinations mc
+                    LEFT JOIN user_seen_models usm_left ON mc.left_model = usm_left.model_name
+                    LEFT JOIN user_seen_models usm_right ON mc.right_model = usm_right.model_name
+                    GROUP BY mc.combo_id
                 )
-                SELECT * FROM candidate_evals
-                ORDER BY (unseen_left + unseen_right) DESC, RANDOM()
+                
+                SELECT ep.* 
+                FROM evaluation_pool ep
+                JOIN combo_exposure_score ces ON ep.combo_id = ces.combo_id
+                WHERE 
+                    (ep.status = 'available' OR 
+                     (ep.status = 'in_progress' AND ep.assigned_at < ?))
+                    AND ep.criteria_id IN ({criteria_ids_placeholders})
+                    AND NOT EXISTS (
+                        SELECT 1 FROM evaluations e
+                        JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
+                        WHERE 
+                            e.user_id = ? 
+                            AND seen_ep.prompt_id = ep.prompt_id
+                            AND seen_ep.criteria_id = ep.criteria_id
+                            AND seen_ep.combo_id = ep.combo_id
+                    )
+                ORDER BY ces.total_exposure ASC, RANDOM()
                 LIMIT 1
                 """,
                 (user_id, user_id, cutoff_time_str, *criteria_ids, user_id),
@@ -171,53 +158,62 @@ def get_sample_from_pool(user_id):
             assign_a_completed_eval = bool(
                 row is None
             )  # if no available evaluations, assign a completed one
+
             if assign_a_completed_eval:
-                # if the user completed all of the allocated evaluations, still select some at random
-                # but still respect the assigned criteria IDs
-                # and prioritize unseen models
+                # If the user completed all of the allocated evaluations, still select some at random
+                # but still respect the assigned criteria IDs and preference unseen models
                 c.execute(
                     f"""
-                    WITH candidate_evals AS (
+                    WITH user_seen_models AS (
+                        -- Count how many times user has seen each model (on either left or right)
                         SELECT 
-                            ep.*,
-                            e_left.left_model,
-                            e_right.right_model,
-                            CASE
-                                WHEN e_left.left_model IS NULL THEN 1
-                                ELSE 0
-                            END as unseen_left,
-                            CASE
-                                WHEN e_right.right_model IS NULL THEN 1
-                                ELSE 0
-                            END as unseen_right
-                        FROM evaluation_pool ep
-                        LEFT JOIN (
-                            SELECT DISTINCT ep.combo_id, e.left_model
-                            FROM evaluations e
-                            JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-                            WHERE e.user_id = ?
-                        ) e_left ON ep.combo_id = e_left.combo_id
-                        LEFT JOIN (
-                            SELECT DISTINCT ep.combo_id, e.right_model
-                            FROM evaluations e
-                            JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-                            WHERE e.user_id = ?
-                        ) e_right ON ep.combo_id = e_right.combo_id
-                        WHERE 
-                            (ep.user_id IS NULL OR ep.user_id != ?)
-                            AND ep.criteria_id IN ({criteria_ids_placeholders})
-                            AND NOT EXISTS (
-                                SELECT 1 FROM evaluations e
-                                JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
-                                WHERE 
-                                    e.user_id = ? 
-                                    AND seen_ep.prompt_id = ep.prompt_id
-                                    AND seen_ep.criteria_id = ep.criteria_id
-                                    AND seen_ep.combo_id = ep.combo_id
-                            )
+                            mc.left_model AS model_name,
+                            COUNT(*) AS seen_count
+                        FROM evaluations e
+                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                        JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                        WHERE e.user_id = ?
+                        GROUP BY mc.left_model
+                        
+                        UNION ALL
+                        
+                        SELECT 
+                            mc.right_model AS model_name,
+                            COUNT(*) AS seen_count
+                        FROM evaluations e
+                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                        JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                        WHERE e.user_id = ?
+                        GROUP BY mc.right_model
+                    ),
+                    
+                    combo_exposure_score AS (
+                        -- Calculate an exposure score for each combo (lower is better - unseen models)
+                        SELECT 
+                            mc.combo_id,
+                            COALESCE(SUM(usm_left.seen_count), 0) + COALESCE(SUM(usm_right.seen_count), 0) AS total_exposure
+                        FROM model_combinations mc
+                        LEFT JOIN user_seen_models usm_left ON mc.left_model = usm_left.model_name
+                        LEFT JOIN user_seen_models usm_right ON mc.right_model = usm_right.model_name
+                        GROUP BY mc.combo_id
                     )
-                    SELECT * FROM candidate_evals
-                    ORDER BY (unseen_left + unseen_right) DESC, RANDOM()
+                    
+                    SELECT ep.* 
+                    FROM evaluation_pool ep
+                    JOIN combo_exposure_score ces ON ep.combo_id = ces.combo_id
+                    WHERE 
+                        (ep.user_id is NULL or ep.user_id != ?)
+                        AND ep.criteria_id IN ({criteria_ids_placeholders})
+                        AND NOT EXISTS (
+                            SELECT 1 FROM evaluations e
+                            JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
+                            WHERE 
+                                e.user_id = ? 
+                                AND seen_ep.prompt_id = ep.prompt_id
+                                AND seen_ep.criteria_id = ep.criteria_id
+                                AND seen_ep.combo_id = ep.combo_id
+                        )
+                    ORDER BY ces.total_exposure ASC, RANDOM()
                     LIMIT 1
                     """,
                     (user_id, user_id, user_id, *criteria_ids, user_id),

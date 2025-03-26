@@ -3,10 +3,11 @@ import os
 import os.path as osp
 import sqlite3
 import time
+from itertools import combinations
 
 import streamlit as st
 
-from config import NUM_COMBINATIONS, NUM_CRITERIA, NUM_PROMPTS, NUM_TURNS
+from config import MODEL_LIST, NUM_COMBINATIONS, NUM_CRITERIA, NUM_PROMPTS, NUM_TURNS
 from pool_manager import get_db_lock
 
 SAVE_PATH = "eval"
@@ -64,6 +65,16 @@ def create_db():
         )"""
     )
 
+    # NEW: Create model combinations table to map combo_id to actual models
+    c.execute(
+        """CREATE TABLE IF NOT EXISTS model_combinations (
+            combo_id INTEGER PRIMARY KEY,
+            left_model TEXT NOT NULL,
+            right_model TEXT NOT NULL,
+            UNIQUE(left_model, right_model)
+        )"""
+    )
+
     # Prefill the evaluation_pool table
     c.execute("SELECT COUNT(*) FROM evaluation_pool")
     count = c.fetchone()[0]
@@ -82,6 +93,24 @@ def create_db():
                (prompt_id, criteria_id, turn_id, combo_id) 
                VALUES (?, ?, ?, ?)""",
             evals,
+        )
+
+    # Check if model combinations table needs to be populated
+    c.execute("SELECT COUNT(*) FROM model_combinations")
+    count = c.fetchone()[0]
+
+    if count == 0:  # Only prefill if table is empty
+        model_combos = []
+        combos = list(combinations(MODEL_LIST, 2))
+        for combo_id, (left_model, right_model) in enumerate(combos):
+            model_combos.append((combo_id, left_model, right_model))
+
+        # Insert all model combinations
+        c.executemany(
+            """INSERT INTO model_combinations 
+               (combo_id, left_model, right_model) 
+               VALUES (?, ?, ?)""",
+            model_combos,
         )
 
     conn.commit()
@@ -213,7 +242,7 @@ def get_new_user_id():
         AND status != 'completed' OR
         (status = 'in_progress' AND assigned_at < ?)
     """,
-        (cutoff_time_str),
+        (cutoff_time_str,),
     )
 
     result = c.fetchone()
