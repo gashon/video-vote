@@ -1,7 +1,9 @@
+import datetime
 import io
 import json
 import os.path as osp
 import random
+import sqlite3
 
 import streamlit as st
 from fpdf import FPDF
@@ -9,6 +11,8 @@ from fpdf import FPDF
 from batch_manager import get_eval_batch_size
 from config import CRITERIA, DEBUG_MODE, MODEL_LIST, VIDEO_LENGTH, VIDEO_ROOT, get_combo
 from response_handler import fetch_all_responses
+
+SAVE_PATH = "eval"
 
 
 def get_rankings(sorted_videos):
@@ -156,7 +160,7 @@ def show_videos_page(eval_id):
 
     combo = list(get_combo(combo_id))
 
-    rng = random.Random(prompt_id * criteria_id * combo_id * turn_id)
+    rng = random.Random(hash(f"{prompt_id}_{criteria_id}_{combo_id}_{turn_id}"))
     rng.shuffle(combo)
 
     left_model = combo[0]
@@ -206,6 +210,35 @@ def admin_page():
     if password == "lakeside6":
         st.success("Access granted!")
 
+        # Section for deleting users and their evaluations
+        st.header("Delete User")
+        user_ids_input = st.text_input(
+            "Enter comma-separated user IDs to delete (e.g., 1,2,3):"
+        )
+        delete_button = st.button("Delete Selected Users")
+
+        if delete_button and user_ids_input:
+            try:
+                # Parse the comma-separated user IDs
+                user_ids = [
+                    int(id.strip()) for id in user_ids_input.split(",") if id.strip()
+                ]
+
+                if user_ids:
+                    # Call the function to mark users and their evaluations as deleted
+                    deleted_count = delete_users_and_evaluations(user_ids)
+                    st.success(
+                        f"Successfully marked {len(user_ids)} user and {deleted_count} evaluations as deleted."
+                    )
+                else:
+                    st.warning("No valid user IDs provided.")
+            except ValueError:
+                st.error("Invalid input. Please enter comma-separated numbers only.")
+            except Exception as e:
+                st.error(f"Error processing deletion: {str(e)}")
+
+        # Admin report download section
+        st.header("Download Reports")
         report_data = io.StringIO()
         entries, col_names = fetch_all_responses()
         json.dump(tuple(col_names), report_data)
@@ -244,3 +277,86 @@ def admin_page():
     else:
         if password:
             st.error("Access denied! Incorrect password.")
+
+
+def delete_users_and_evaluations(user_ids):
+    """
+    Marks users and their evaluations as deleted by setting the deleted_at timestamp
+    and returns evaluation_pool entries to available status.
+
+    Args:
+        user_ids: List of user IDs to mark as deleted
+
+    Returns:
+        int: Number of users successfully marked as deleted
+    """
+    conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
+    c = conn.cursor()
+
+    try:
+        # Start a transaction
+        conn.execute("BEGIN TRANSACTION")
+
+        # Get the current timestamp
+        current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Update users table - mark users as deleted
+        placeholders = ",".join(["?"] * len(user_ids))
+        c.execute(
+            f"""
+            UPDATE users
+            SET deleted_at = ?
+            WHERE id IN ({placeholders})
+            AND deleted_at IS NULL
+            """,
+            (current_timestamp, *user_ids),
+        )
+
+        # Get evaluation_pool_ids for the users' evaluations
+        c.execute(
+            f"""
+            SELECT evaluation_pool_id
+            FROM evaluations
+            WHERE user_id IN ({placeholders})
+            AND deleted_at IS NULL
+            """,
+            user_ids,
+        )
+        eval_pool_ids = [row[0] for row in c.fetchall()]
+
+        # Mark evaluations as deleted
+        c.execute(
+            f"""
+            UPDATE evaluations
+            SET deleted_at = ?
+            WHERE user_id IN ({placeholders})
+            AND deleted_at IS NULL
+            """,
+            (current_timestamp, *user_ids),
+        )
+
+        # Reset the status of evaluation_pool entries if there are any
+        if eval_pool_ids:
+            pool_placeholders = ",".join(["?"] * len(eval_pool_ids))
+            c.execute(
+                f"""
+                UPDATE evaluation_pool
+                SET status = 'available', user_id = NULL
+                WHERE id IN ({pool_placeholders})
+                AND (status = 'completed' OR status='in_progress')
+                """,
+                eval_pool_ids,
+            )
+
+        # Commit the transaction
+        conn.commit()
+
+        # Return the number of users affected
+        return c.rowcount
+
+    except Exception as e:
+        # Roll back in case of error
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()

@@ -12,36 +12,6 @@ def get_db_lock():
     return _db_lock
 
 
-def all_evaluations_assigned():
-    """
-    Check if all evaluations have been assigned to evaluators
-    Returns:
-        bool: True if all evaluations have been assigned, False otherwise
-    """
-    conn = sqlite3.connect(osp.join(SAVE_PATH, "evaluations.db"))
-    c = conn.cursor()
-    try:
-        # No existing in_progress evaluation for this user, so find a new one
-        # Calculate timestamp for 30 minutes ago
-        cutoff_time = datetime.datetime.now() - datetime.timedelta(minutes=30)
-        cutoff_time_str = cutoff_time.strftime("%Y-%m-%d %H:%M:%S")
-
-        # Find an available evaluation
-        c.execute(
-            """
-            SELECT COUNT(*) FROM evaluation_pool
-            WHERE 
-                status = 'available' OR 
-                (status = 'in_progress' AND assigned_at < ?)
-            """,
-            (cutoff_time_str,),
-        )
-        count = c.fetchone()[0]
-        return count == 0
-    finally:
-        conn.close()
-
-
 def get_sample_from_pool(user_id):
     """
     For a given user:
@@ -50,6 +20,8 @@ def get_sample_from_pool(user_id):
        a. Has status='available' OR
        b. Has status='in_progress' but was assigned over 30 minutes ago
     3. Mark it as in_progress for the current user
+    4. Only fetch samples that match the user's assignment_type criteria
+    5. Preference samples with models the user hasn't seen before
 
     Args:
         user_id: The ID of the user requesting the evaluation
@@ -67,16 +39,41 @@ def get_sample_from_pool(user_id):
         c = conn.cursor()
 
         try:
-            # First check if user already has an in_progress evaluation
+            # Get user's assignment type
             c.execute(
                 """
+                SELECT assignment_type FROM users
+                WHERE id = ?
+                """,
+                (user_id,),
+            )
+            user_assignment = c.fetchone()
+
+            if not user_assignment:
+                return None  # User not found
+
+            assignment_type = user_assignment["assignment_type"]
+
+            # Define criteria IDs based on assignment type
+            criteria_ids = []
+            if assignment_type == 1:
+                criteria_ids = [1, 2]  # First assignment: criteria_id 1 and 2
+            elif assignment_type == 2:
+                criteria_ids = [0, 3]  # Second assignment: criteria_id 0 and 3
+
+            criteria_ids_placeholders = ",".join(["?" for _ in criteria_ids])
+
+            # First check if user already has an in_progress evaluation
+            c.execute(
+                f"""
                 SELECT * FROM evaluation_pool
                 WHERE 
                     user_id = ? AND 
-                    status = 'in_progress'
+                    status = 'in_progress' AND
+                    criteria_id IN ({criteria_ids_placeholders})
                 LIMIT 1
                 """,
-                (user_id,),
+                (user_id, *criteria_ids),
             )
 
             row = c.fetchone()
@@ -97,13 +94,50 @@ def get_sample_from_pool(user_id):
             cutoff_time = datetime.datetime.now() - datetime.timedelta(minutes=30)
             cutoff_time_str = cutoff_time.strftime("%Y-%m-%d %H:%M:%S")
 
-            # Find an available evaluation (not assigned to this user before)
+            # Find available evaluations and prioritize ones with models the user hasn't seen
             c.execute(
-                """
-                SELECT * FROM evaluation_pool ep
+                f"""
+                WITH user_seen_models AS (
+                    -- Count how many times user has seen each model (on either left or right)
+                    SELECT 
+                        mc.left_model AS model_name,
+                        COUNT(*) AS seen_count
+                    FROM evaluations e
+                    JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                    JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                    WHERE e.user_id = ?
+                    GROUP BY mc.left_model
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        mc.right_model AS model_name,
+                        COUNT(*) AS seen_count
+                    FROM evaluations e
+                    JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                    JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                    WHERE e.user_id = ?
+                    GROUP BY mc.right_model
+                ),
+                
+                combo_exposure_score AS (
+                    -- Calculate an exposure score for each combo (lower is better - unseen models)
+                    SELECT 
+                        mc.combo_id,
+                        COALESCE(SUM(usm_left.seen_count), 0) + COALESCE(SUM(usm_right.seen_count), 0) AS total_exposure
+                    FROM model_combinations mc
+                    LEFT JOIN user_seen_models usm_left ON mc.left_model = usm_left.model_name
+                    LEFT JOIN user_seen_models usm_right ON mc.right_model = usm_right.model_name
+                    GROUP BY mc.combo_id
+                )
+                
+                SELECT ep.* 
+                FROM evaluation_pool ep
+                JOIN combo_exposure_score ces ON ep.combo_id = ces.combo_id
                 WHERE 
                     (ep.status = 'available' OR 
-                    (ep.status = 'in_progress' AND ep.assigned_at < ?))
+                     (ep.status = 'in_progress' AND ep.assigned_at < ?))
+                    AND ep.criteria_id IN ({criteria_ids_placeholders})
                     AND NOT EXISTS (
                         SELECT 1 FROM evaluations e
                         JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
@@ -113,10 +147,10 @@ def get_sample_from_pool(user_id):
                             AND seen_ep.criteria_id = ep.criteria_id
                             AND seen_ep.combo_id = ep.combo_id
                     )
-                ORDER BY RANDOM()
+                ORDER BY ces.total_exposure ASC, RANDOM()
                 LIMIT 1
                 """,
-                (cutoff_time_str, user_id),
+                (user_id, user_id, cutoff_time_str, *criteria_ids, user_id),
             )
 
             row = c.fetchone()
@@ -124,26 +158,65 @@ def get_sample_from_pool(user_id):
             assign_a_completed_eval = bool(
                 row is None
             )  # if no available evaluations, assign a completed one
+
             if assign_a_completed_eval:
-                # if the user completed all of the allocated evaluations, still select some at random
+                # If the user completed all of the allocated evaluations, still select some at random
+                # but still respect the assigned criteria IDs and preference unseen models
                 c.execute(
-                    """
-                    SELECT * FROM evaluation_pool ep
+                    f"""
+                    WITH user_seen_models AS (
+                        -- Count how many times user has seen each model (on either left or right)
+                        SELECT 
+                            mc.left_model AS model_name,
+                            COUNT(*) AS seen_count
+                        FROM evaluations e
+                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                        JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                        WHERE e.user_id = ?
+                        GROUP BY mc.left_model
+                        
+                        UNION ALL
+                        
+                        SELECT 
+                            mc.right_model AS model_name,
+                            COUNT(*) AS seen_count
+                        FROM evaluations e
+                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                        JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                        WHERE e.user_id = ?
+                        GROUP BY mc.right_model
+                    ),
+                    
+                    combo_exposure_score AS (
+                        -- Calculate an exposure score for each combo (lower is better - unseen models)
+                        SELECT 
+                            mc.combo_id,
+                            COALESCE(SUM(usm_left.seen_count), 0) + COALESCE(SUM(usm_right.seen_count), 0) AS total_exposure
+                        FROM model_combinations mc
+                        LEFT JOIN user_seen_models usm_left ON mc.left_model = usm_left.model_name
+                        LEFT JOIN user_seen_models usm_right ON mc.right_model = usm_right.model_name
+                        GROUP BY mc.combo_id
+                    )
+                    
+                    SELECT ep.* 
+                    FROM evaluation_pool ep
+                    JOIN combo_exposure_score ces ON ep.combo_id = ces.combo_id
                     WHERE 
                         (ep.user_id is NULL or ep.user_id != ?)
+                        AND ep.criteria_id IN ({criteria_ids_placeholders})
                         AND NOT EXISTS (
-                                SELECT 1 FROM evaluations e
-                                JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
-                                WHERE 
-                                    e.user_id = ? 
-                                    AND seen_ep.prompt_id = ep.prompt_id
-                                    AND seen_ep.criteria_id = ep.criteria_id
-                                    AND seen_ep.combo_id = ep.combo_id
-                            )
-                    ORDER BY RANDOM()
+                            SELECT 1 FROM evaluations e
+                            JOIN evaluation_pool seen_ep ON e.evaluation_pool_id = seen_ep.id
+                            WHERE 
+                                e.user_id = ? 
+                                AND seen_ep.prompt_id = ep.prompt_id
+                                AND seen_ep.criteria_id = ep.criteria_id
+                                AND seen_ep.combo_id = ep.combo_id
+                        )
+                    ORDER BY ces.total_exposure ASC, RANDOM()
                     LIMIT 1
                     """,
-                    (user_id, user_id),
+                    (user_id, user_id, user_id, *criteria_ids, user_id),
                 )
 
                 row = c.fetchone()
