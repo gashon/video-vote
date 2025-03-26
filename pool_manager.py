@@ -221,9 +221,6 @@ def get_sample_from_pool(user_id):
 
                 row = c.fetchone()
 
-            if not row:
-                return None  # No available evaluations for this user's assignment
-
             # Convert to dict
             evaluation = dict(row)
 
