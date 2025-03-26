@@ -238,7 +238,7 @@ def get_new_user_id():
         """
         SELECT COUNT(*) as remaining_count
         FROM evaluation_pool
-        WHERE criteria_id IN (1, 2)
+        WHERE criteria_id IN (0, 3)
         AND status != 'completed' OR
         (status = 'in_progress' AND assigned_at < ?)
     """,
@@ -249,7 +249,7 @@ def get_new_user_id():
     remaining_evals = result["remaining_count"]
 
     # Determine which assignment type to assign
-    assignment_type = 1 if remaining_evals > 0 else 2
+    assignment_type = 2 if remaining_evals > 0 else 1
 
     # Insert new user with the determined assignment type
     c.execute(
