@@ -26,7 +26,7 @@ def fetch_completed_responses(db_path):
             ep.user_id AS pool_user_id, ep.status, ep.assigned_at, ep.created_at AS pool_created_at
         FROM evaluations e
         JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-        WHERE ep.status = 'completed'
+        WHERE ep.status = 'completed' and e.deleted_at IS NULL
         """
     )
     rows = c.fetchall()
