@@ -98,39 +98,43 @@ def get_sample_from_pool(user_id):
             c.execute(
                 f"""
                 WITH user_seen_models AS (
-                    -- Count how many times user has seen each model (on either left or right)
-                    SELECT 
-                        mc.left_model AS model_name,
-                        COUNT(*) AS seen_count
-                    FROM evaluations e
-                    JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-                    JOIN model_combinations mc ON ep.combo_id = mc.combo_id
-                    WHERE e.user_id = ?
-                    GROUP BY mc.left_model
-                    
-                    UNION ALL
-                    
-                    SELECT 
-                        mc.right_model AS model_name,
-                        COUNT(*) AS seen_count
-                    FROM evaluations e
-                    JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-                    JOIN model_combinations mc ON ep.combo_id = mc.combo_id
-                    WHERE e.user_id = ?
-                    GROUP BY mc.right_model
+                    -- Aggregate model views across left and right positions
+                    SELECT model_name, SUM(seen_count) AS seen_count
+                    FROM (
+                        SELECT 
+                            mc.left_model AS model_name,
+                            COUNT(*) AS seen_count
+                        FROM evaluations e
+                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                        JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                        WHERE e.user_id = ?
+                        GROUP BY mc.left_model
+
+                        UNION ALL
+
+                        SELECT 
+                            mc.right_model AS model_name,
+                            COUNT(*) AS seen_count
+                        FROM evaluations e
+                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                        JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                        WHERE e.user_id = ?
+                        GROUP BY mc.right_model
+                    ) combined
+                    GROUP BY model_name
                 ),
-                
+
                 combo_exposure_score AS (
                     -- Calculate an exposure score for each combo (lower is better - unseen models)
                     SELECT 
                         mc.combo_id,
-                        COALESCE(SUM(usm_left.seen_count), 0) + COALESCE(SUM(usm_right.seen_count), 0) AS total_exposure
+                        COALESCE(usm_left.seen_count, 0) + COALESCE(usm_right.seen_count, 0) AS total_exposure
                     FROM model_combinations mc
                     LEFT JOIN user_seen_models usm_left ON mc.left_model = usm_left.model_name
                     LEFT JOIN user_seen_models usm_right ON mc.right_model = usm_right.model_name
                     GROUP BY mc.combo_id
                 )
-                
+
                 SELECT ep.* 
                 FROM evaluation_pool ep
                 JOIN combo_exposure_score ces ON ep.combo_id = ces.combo_id
@@ -166,43 +170,47 @@ def get_sample_from_pool(user_id):
                     f"""
                     WITH user_seen_models AS (
                         -- Count how many times user has seen each model (on either left or right)
-                        SELECT 
-                            mc.left_model AS model_name,
-                            COUNT(*) AS seen_count
-                        FROM evaluations e
-                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-                        JOIN model_combinations mc ON ep.combo_id = mc.combo_id
-                        WHERE e.user_id = ?
-                        GROUP BY mc.left_model
-                        
-                        UNION ALL
-                        
-                        SELECT 
-                            mc.right_model AS model_name,
-                            COUNT(*) AS seen_count
-                        FROM evaluations e
-                        JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
-                        JOIN model_combinations mc ON ep.combo_id = mc.combo_id
-                        WHERE e.user_id = ?
-                        GROUP BY mc.right_model
+                        SELECT model_name, SUM(seen_count) AS seen_count
+                        FROM (
+                            SELECT 
+                                mc.left_model AS model_name,
+                                COUNT(*) AS seen_count
+                            FROM evaluations e
+                            JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                            JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                            WHERE e.user_id = ?
+                            GROUP BY mc.left_model
+
+                            UNION ALL
+
+                            SELECT 
+                                mc.right_model AS model_name,
+                                COUNT(*) AS seen_count
+                            FROM evaluations e
+                            JOIN evaluation_pool ep ON e.evaluation_pool_id = ep.id
+                            JOIN model_combinations mc ON ep.combo_id = mc.combo_id
+                            WHERE e.user_id = ?
+                            GROUP BY mc.right_model
+                        ) combined
+                        GROUP BY model_name
                     ),
-                    
+
                     combo_exposure_score AS (
                         -- Calculate an exposure score for each combo (lower is better - unseen models)
                         SELECT 
                             mc.combo_id,
-                            COALESCE(SUM(usm_left.seen_count), 0) + COALESCE(SUM(usm_right.seen_count), 0) AS total_exposure
+                            COALESCE(usm_left.seen_count, 0) + COALESCE(usm_right.seen_count, 0) AS total_exposure
                         FROM model_combinations mc
                         LEFT JOIN user_seen_models usm_left ON mc.left_model = usm_left.model_name
                         LEFT JOIN user_seen_models usm_right ON mc.right_model = usm_right.model_name
                         GROUP BY mc.combo_id
                     )
-                    
+
                     SELECT ep.* 
                     FROM evaluation_pool ep
                     JOIN combo_exposure_score ces ON ep.combo_id = ces.combo_id
                     WHERE 
-                        (ep.user_id is NULL or ep.user_id != ?)
+                        (ep.user_id IS NULL OR ep.user_id != ?)
                         AND ep.criteria_id IN ({criteria_ids_placeholders})
                         AND NOT EXISTS (
                             SELECT 1 FROM evaluations e
