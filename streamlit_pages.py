@@ -1,6 +1,7 @@
 import datetime
 import io
 import json
+import os
 import os.path as osp
 import random
 import sqlite3
@@ -257,21 +258,59 @@ def admin_page():
             mime="application/jsonl",
         )
 
-        # Add download button for SQLite database file
-        try:
-            with open("eval/evaluations.db", "rb") as db_file:
-                db_bytes = db_file.read()
+        # Database download section
+        st.header("Database Management")
 
-            st.download_button(
-                label="📥 Download SQLite Database",
-                data=db_bytes,
-                file_name="evaluations.db",
-                mime="application/octet-stream",
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Add download button for SQLite database file
+            try:
+                with open("eval/evaluations.db", "rb") as db_file:
+                    db_bytes = db_file.read()
+
+                st.download_button(
+                    label="📥 Download SQLite Database",
+                    data=db_bytes,
+                    file_name="evaluations.db",
+                    mime="application/octet-stream",
+                )
+            except FileNotFoundError:
+                st.error("Database file not found at eval/evaluations.db")
+            except Exception as e:
+                st.error(f"Error accessing database file: {str(e)}")
+
+        with col2:
+            # Add upload functionality for replacing the database
+            st.subheader("Replace Database")
+            uploaded_file = st.file_uploader(
+                "Upload SQLite Database", type=["db", "sqlite", "sqlite3"]
             )
-        except FileNotFoundError:
-            st.error("Database file not found at eval/evaluations.db")
-        except Exception as e:
-            st.error(f"Error accessing database file: {str(e)}")
+
+            if uploaded_file is not None:
+                if st.button("Replace Current Database"):
+                    try:
+                        # Create a backup of the current database first
+                        import shutil
+                        from datetime import datetime
+
+                        # Generate timestamp for backup filename
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        backup_path = f"eval/evaluations_backup_{timestamp}.db"
+
+                        # Create backup if original exists
+                        if os.path.exists("eval/evaluations.db"):
+                            shutil.copy2("eval/evaluations.db", backup_path)
+                            st.info(f"Created backup at {backup_path}")
+
+                        # Save the uploaded file to replace the current database
+                        with open("eval/evaluations.db", "wb") as f:
+                            f.write(uploaded_file.getbuffer())
+
+                        st.success("Database successfully replaced!")
+                        st.warning("Please refresh the page to use the new database.")
+                    except Exception as e:
+                        st.error(f"Error replacing database: {str(e)}")
 
         st.write("Refresh the page before downloading the most recent data.")
     else:
