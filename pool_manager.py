@@ -233,20 +233,20 @@ def get_sample_from_pool(user_id):
             evaluation = dict(row)
 
             # Mark as in_progress
-            if not assign_a_completed_eval:
-                c.execute(
-                    """
-                    UPDATE evaluation_pool 
-                    SET 
-                        user_id = ?,
-                        status = 'in_progress', 
-                        assigned_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                    """,
-                    (user_id, evaluation["id"]),
-                )
+            c.execute(
+                """
+                UPDATE evaluation_pool 
+                SET 
+                    user_id = ?,
+                    status = 'in_progress', 
+                    assigned_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (user_id, evaluation["id"]),
+            )
 
-                conn.commit()
+            conn.commit()
+
             return (
                 evaluation["prompt_id"],
                 evaluation["criteria_id"],
