@@ -102,7 +102,7 @@ def start_page():
 
 def success_final_page(user_id):
     st.success(
-        f"User-{user_id:03d} have completed all evaluations.\n Please enter code TTTM933K to get your reward. Thank you for your participation! Note: Once you leave this page, you cannot return."
+        f"User-{user_id:03d} have completed all evaluations.\n Please enter code CJKM933K to get your reward. Thank you for your participation! Note: Once you leave this page, you cannot return."
     )
 
     # evals = sorted(evals, key=lambda x: x[2])
