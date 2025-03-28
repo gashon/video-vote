@@ -7,7 +7,14 @@ from itertools import combinations
 
 import streamlit as st
 
-from config import MODEL_LIST, NUM_COMBINATIONS, NUM_CRITERIA, NUM_PROMPTS, NUM_TURNS
+from config import (
+    MODEL_LIST,
+    NUM_COMBINATIONS,
+    NUM_CRITERIA,
+    NUM_PROMPTS,
+    NUM_TURNS,
+    get_combo,
+)
 from pool_manager import get_db_lock
 
 SAVE_PATH = "eval"
@@ -19,19 +26,20 @@ def create_db():
     c = conn.cursor()
 
     # Pre-filled evaluation pool table with status tracking
+    # Set criteria_id and turn_id to 0 as specified
     c.execute(
         """CREATE TABLE IF NOT EXISTS evaluation_pool
             (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 prompt_id INTEGER, 
-                criteria_id INTEGER,
-                turn_id INTEGER,
+                criteria_id INTEGER DEFAULT 0,
+                turn_id INTEGER DEFAULT 0,
                 combo_id INTEGER,
                 user_id INTEGER,
                 status TEXT DEFAULT 'available',
                 assigned_at DATETIME,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(prompt_id, criteria_id, turn_id, combo_id)
+                UNIQUE(prompt_id, combo_id)
             )"""
     )
 
@@ -59,13 +67,13 @@ def create_db():
     c.execute(
         """CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            assignment_type INTEGER NOT NULL, -- 1 for criteria_id 1 and 2, 2 for criteria_id 0 and 3
+            assignment_type INTEGER NOT NULL,
             deleted_at DATETIME DEFAULT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )"""
     )
 
-    # NEW: Create model combinations table to map combo_id to actual models
+    # Create model combinations table to map combo_id to actual models
     c.execute(
         """CREATE TABLE IF NOT EXISTS model_combinations (
             combo_id INTEGER PRIMARY KEY,
@@ -82,10 +90,9 @@ def create_db():
     if count == 0:  # Only prefill if table is empty
         evals = []
         for prompt in range(NUM_PROMPTS):
-            for criteria in range(NUM_CRITERIA):
-                for turn in range(NUM_TURNS):  # use turn id for uniqueness in db
-                    for combo in range(NUM_COMBINATIONS):
-                        evals.append((prompt, criteria, turn, combo))
+            for combo in range(NUM_COMBINATIONS):
+                # Set criteria_id and turn_id to 0
+                evals.append((prompt, 0, 0, combo))
 
         # Insert all evaluation combinations
         c.executemany(
@@ -101,8 +108,8 @@ def create_db():
 
     if count == 0:  # Only prefill if table is empty
         model_combos = []
-        combos = list(combinations(MODEL_LIST, 2))
-        for combo_id, (left_model, right_model) in enumerate(combos):
+        for combo_id in range(NUM_COMBINATIONS):
+            left_model, right_model = get_combo(combo_id)
             model_combos.append((combo_id, left_model, right_model))
 
         # Insert all model combinations

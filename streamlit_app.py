@@ -3,7 +3,6 @@ import time
 import streamlit as st
 from streamlit_cookies_manager import CookieManager
 
-from batch_manager import create_batches
 from config import DEBUG_MODE, MIN_REVIEW_DURATION_IN_SEC, get_eval_batch_size
 from pool_manager import get_sample_from_pool
 from response_handler import (
@@ -30,7 +29,6 @@ if __name__ == "__main__":
     create_db()
 
     cookies = get_cookie_manager()
-    batches = create_batches()
     if DEBUG_MODE:
         if st.button("Reset"):
             del cookies["user_id"]

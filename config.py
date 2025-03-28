@@ -4,11 +4,11 @@ VIDEO_LENGTH = 63
 VIDEO_ROOT = f"video/{VIDEO_LENGTH}sec"
 
 NUM_PROMPTS = 100
-NUM_CRITERIA = 4
+NUM_CRITERIA = 1
 NUM_TURNS = 1
-NUM_COMBINATIONS = 6
+NUM_COMBINATIONS = 3
 TOTAL_EVALUATIONS = NUM_PROMPTS * NUM_CRITERIA * NUM_COMBINATIONS * NUM_TURNS  # 22500
-NUM_EVALUATORS = 120
+NUM_EVALUATORS = 12
 
 MIN_REVIEW_DURATION_IN_SEC = VIDEO_LENGTH
 
@@ -23,24 +23,8 @@ MODEL_LIST = [
 
 CRITERIA = {
     0: [
-        "Text Following",
-        "How close does the video follow the text prompt, including the key elements and actions?",
-        "If the prompt says Tom should be in the kitchen but the video shows him somewhere else, like the living room, this means the video doesn't follow the text.",
-    ],
-    1: [
-        "Motion Smoothness",
-        "Does the motion of characters look smooth and consistent throughout the video? It checks that movements are clear, fluid, and don't have strange jumps or visual glitches.",
-        "If Jerry suddenly appears somewhere else, moves in jerky steps, or his shape distorts randomly, this shows poor motion smoothness.",
-    ],
-    2: [
-        "Aesthetics",
-        "How pleasing does the video look? It checks the quality of colors, lighting, camera angles, and how everything fits together visually.",
-        "If the colors clash, lighting changes abruptly, or scenes look messy and unattractive, the video has poor visual appeal.",
-    ],
-    3: [
-        "Scene Consistency",
-        "Do characters and settings stay the same across scenes? It checks if characters, objects, and locations remain consistent, even if there's a gap between scenes.",
-        "If Jerry has a red scarf in one scene but suddenly doesn't have it in the next scene without explanation, the video has poor scene consistency.",
+        "Overall Quality",
+        "Which of the two videos is of higher quality in terms of scene consistency, motion smoothness, text following, and aesthetics?",
     ],
 }
 
@@ -78,8 +62,20 @@ def get_total_evaluations_count():
 
 
 def get_combo(combo_id):
-    combos = list(combinations(MODEL_LIST, 2))
-    if combo_id < 0 or combo_id >= len(combos):
-        raise ValueError(f"combo_id must be between 0 and {len(combos) - 1}")
-    model_left, model_right = combos[combo_id]
+    """
+    Returns a tuple of (ttt-mlp, other_model) for the given combo_id.
+    combo_id 0: ttt-mlp vs deltanet
+    combo_id 1: ttt-mlp vs mamba
+    combo_id 2: ttt-mlp vs sliding-window
+    """
+    if combo_id < 0 or combo_id >= NUM_COMBINATIONS:
+        raise ValueError(f"combo_id must be between 0 and {NUM_COMBINATIONS - 1}")
+
+    # Always have ttt-mlp as the left model
+    model_left = "ttt-mlp"
+
+    # The right model is one of the other three
+    other_models = [model for model in MODEL_LIST if model != "ttt-mlp"]
+    model_right = other_models[combo_id]
+
     return model_left, model_right

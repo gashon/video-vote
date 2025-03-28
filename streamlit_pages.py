@@ -49,8 +49,6 @@ def start_page():
 
     for i, criterion in CRITERIA.items():
         with st.expander(f"**{criterion[0]}**: {criterion[1]}", expanded=True):
-            if criterion[2]:
-                st.write(f"Violation example: {criterion[2]}")
             good_example_video = osp.join("example_videos", f"criterion{i}-good.mp4")
             bad_example_video = osp.join("example_videos", f"criterion{i}-bad.mp4")
             reason_text = osp.join("example_videos", f"criterion{i}-reason.txt")
@@ -73,11 +71,9 @@ def start_page():
     st.markdown("### Instructions")
     st.markdown(
         """
-                1. Watch both videos considering the given criteria.
+                1. Watch both videos considering and assess the overall quality of the videos according to scene consistency, motion smoothness , text following, and aesthetics.
 
-                2. If necessary for evaluation based on the criteria (e.g. Text following), the prompts that generated the two videos will be displayed. Please read the prompts carefully
-
-                3. Select the better video, or mark a tie **focus strictly on this criterion** WITHOUT taking into account any other criteria or personal preferences.
+                3. Select the better video, WITHOUT taking into account any other criteria or personal preferences.
 
                 4. Feel free to watch the videos as many times as you need to make the best choice. However, you will NOT be able to return to the previous question after pressing the **[ Next ]** button.
 
@@ -144,11 +140,14 @@ def show_videos_page(eval_id):
 
     st.markdown(f"#### Criteria - `{CRITERIA[criteria_id][0]}`:")
     st.markdown(f"{CRITERIA[criteria_id][1]}")
-    st.caption(f"*Example violation: {CRITERIA[criteria_id][2]}")
 
     st.divider()
 
-    if CRITERIA[criteria_id][0] in ["Text Following", "Character Emotions"]:
+    if CRITERIA[criteria_id][0] in [
+        "Overall Quality",
+        "Text Following",
+        "Character Emotions",
+    ]:
         with open(
             osp.join(VIDEO_ROOT, MODEL_LIST[0], f"prompt-{prompt_id}/summary.txt"),
             "r",
@@ -191,7 +190,7 @@ def show_videos_page(eval_id):
 
     rating = st.pills(
         f"Which video is better?",
-        options=["left", "tie", "right"],
+        options=["left", "right"],
         key=f"vid-{prompt_id}-{criteria_id}-{turn_id}-{combo_id}",
     )
     st.warning(
