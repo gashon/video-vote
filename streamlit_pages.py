@@ -10,7 +10,8 @@ import streamlit as st
 from fpdf import FPDF
 
 from batch_manager import get_eval_batch_size
-from config import CRITERIA, DEBUG_MODE, MODEL_LIST, VIDEO_LENGTH, VIDEO_ROOT, get_combo
+from config import (CRITERIA, DEBUG_MODE, MODEL_LIST, VIDEO_LENGTH, VIDEO_ROOT,
+                    get_combo)
 from response_handler import fetch_all_responses
 
 SAVE_PATH = "eval"
@@ -42,7 +43,6 @@ def start_page():
     st.markdown(
         f"""
                 * You will make **{get_eval_batch_size()} comparisons** by watching two {VIDEO_LENGTH}-second videos generated from the same prompt.
-                * You will select the video that better matches the criterion.
 
                 The estimated time for this task is 1 hour. Criterion will be one of the following four options:"""
     )
@@ -65,9 +65,6 @@ def start_page():
 
                 st.caption(f"{reason_text}")
 
-    st.write(
-        "*The description of the criterion will be displayed again, no need to worry about memorizing it.*"
-    )
     st.markdown("### Instructions")
     st.markdown(
         """

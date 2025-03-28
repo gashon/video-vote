@@ -5,9 +5,9 @@ import time
 
 import requests
 
-SYSTEM_PROMPT = """Generate an extremely detailed 4-5 sentence summary of the following video prompt. 
+SYSTEM_PROMPT = """Generate a straightforward 1-2 sentence summary of the following video prompt. 
 
-Capture all intricate and minor details visible in the scene, including:
+Capture all intricate details visible in the scene, including:
 - Subtle character actions (facial expressions, hand gestures, sticking out tongues)
 - Background elements and environmental conditions
 - Clothing details and accessories
@@ -18,7 +18,11 @@ Capture all intricate and minor details visible in the scene, including:
 
 Do not use phrases like 'In this video' or 'The video shows'; instead, present the information as a comprehensive scene description. 
 
-Every seemingly insignificant detail matters—nothing is too small to include. Balance capturing these intricate details with maintaining narrative coherence so the summary reads as both exhaustively detailed and naturally flowing.
+Focus on capturing the main narrative. The reader should have a clear understanding of the scene and its context.
+
+Do not refer to Tom as a blue gray cat, only use his name. Likewise for Jerry, the brown mouse.
+
+You should have a MAXIMUM OF 1-2 *SHORT* SENTENCES. If you find it impossible to include all details in one sentence, you may use two, but no more.
 """
 
 

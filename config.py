@@ -24,7 +24,7 @@ MODEL_LIST = [
 CRITERIA = {
     0: [
         "Overall Quality",
-        "Which of the two videos is of higher quality in terms of scene consistency, motion smoothness, text following, and aesthetics?",
+        "Which video is better",
     ],
 }
 
